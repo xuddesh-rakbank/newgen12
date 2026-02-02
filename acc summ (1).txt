@@ -1,0 +1,535 @@
+public String execute_AccountSummary(IFormReference iform, String controlName, String data) {
+		try {
+
+			String cabinetName = getCabinetName(iform);
+			String wi_name = getWorkitemName(iform);
+			String ws_name = getActivityName(iform);
+			String sessionID = getSessionId(iform);
+			String userName = getUserName(iform);
+			String jtsPort = iform.getServerPort();
+			String jtsIP = iform.getServerIp();
+			String[] dataArray = data.split("_");
+			String cif = dataArray[0];
+			String rowIndex = dataArray[1];
+			String customer_type = dataArray[2];
+			String prodFetchType = dataArray[3];
+			CourtOrder.mLogger.debug("data is " + data);
+			CourtOrder.mLogger.debug("rowIndex is " + rowIndex);
+			CourtOrder.mLogger.debug("cif is " + cif);
+			CourtOrder.mLogger.debug("customer_type is " + customer_type);
+			CourtOrder.mLogger.debug("prodFetchType is " + prodFetchType);
+			CourtOrder.mLogger.debug("cabinetName:" + cabinetName + " " + "wi_name:" + wi_name + " " + "ws_name:"
+					+ ws_name + " " + "sessionID:" + sessionID + " " + "jtsPort:" + jtsPort + " " + "userName:"
+					+ userName + " " + "jtsIP:" + jtsIP);
+			Account_Summary = PropertyResourceBundle.getBundle("com.newgen.courtorder.integrations.Account_Summary");
+			if (Account_Summary == null)
+				CourtOrder.mLogger.debug("Error in loading status codes");
+			else
+				CourtOrder.mLogger.debug("Status Codes loaded successfully");
+
+			String IsConventionalAccSummary = "";
+			if ("Individual".equalsIgnoreCase(customer_type)) {
+				if ("customerProdFetch".equalsIgnoreCase(prodFetchType)) {
+					IsConventionalAccSummary = iform.getTableCellValue("Grid_Individual_Customer",
+							Integer.parseInt(rowIndex), 18);
+				} else if ("relatedProdFetch".equalsIgnoreCase(prodFetchType)) {
+					IsConventionalAccSummary = iform.getTableCellValue(
+							"NG_COURTORDER_GR_INDIVIDUAL_RELATED_PARTY_DETAILS", Integer.parseInt(rowIndex), 11);
+				}
+				CourtOrder.mLogger
+						.debug("IsConventionalAccSummary flag from grid Indv is: " + IsConventionalAccSummary);
+			} else if ("NonIndividual".equalsIgnoreCase(customer_type)) {
+				if ("customerProdFetch".equalsIgnoreCase(prodFetchType)) {
+					IsConventionalAccSummary = iform.getTableCellValue("Grid_non_Individual_Customer",
+							Integer.parseInt(rowIndex), 11);
+				} else if ("relatedProdFetch".equalsIgnoreCase(prodFetchType)) {
+					IsConventionalAccSummary = iform.getTableCellValue(
+							"NG_COURTORDER_GR_NON_INDIVIDUAL_RELATED_PARTY_DETAILS", Integer.parseInt(rowIndex), 11);
+				}
+				CourtOrder.mLogger
+						.debug("IsConventionalAccSummary flag from grid Non-Indv is: " + IsConventionalAccSummary);
+			}
+
+			String Account_Summary_input_xml = Account_Summary.getString("INPUT_XML").replaceAll("#CIFID#", cif)
+					.replaceAll("#AccountIndicator#", "A");
+			CourtOrder.mLogger.debug("Account_Summary_input_xml " + Account_Summary_input_xml);
+
+			String Account_Summary_output_xml = Account_Summary.getString("OUTPUT_XML");
+
+			MQ_response = MQ_connection_response(iform, controlName, data, Account_Summary_input_xml);
+
+			// MQ_response=Account_Summary_output_xml;
+			String IsIslamic = "";
+			String column_name_final = "";
+			String column_value_final = "";
+			String column_name = "";
+			String column_value = "";
+			XMLParser xmlParserSocketDetails = new XMLParser(MQ_response);
+			CourtOrder.mLogger.debug(" xmlParserSocketDetails : " + xmlParserSocketDetails);
+
+			String return_code = xmlParserSocketDetails.getValueOf("ReturnCode");
+			CourtOrder.mLogger.debug("Return Code: " + return_code);
+			String return_desc = xmlParserSocketDetails.getValueOf("ReturnDesc");
+			CourtOrder.mLogger.debug("return_desc : " + return_desc);
+			if (return_code.equals("0000")) {
+				IsIslamic = xmlParserSocketDetails.getValueOf("IsIslamic");
+				CourtOrder.mLogger.debug("IsIslamic : " + IsIslamic);
+				if (MQ_response.contains("<FINAccountDetail>")) {
+					JSONArray jsonArray1 = new JSONArray();
+					JSONArray jsonArray2 = new JSONArray();
+
+					NGXmlList objWorkList = xmlParserSocketDetails.createList("FetchFINAccountListRes",
+							"FINAccountDetail");
+					for (; objWorkList.hasMoreElements(true); objWorkList.skip(true)) {
+
+						String freezeTypeTagValue = objWorkList.getVal("FreezeType");
+						String freezeTypeReplaceValue = "";
+
+						if ("T".equalsIgnoreCase(freezeTypeTagValue)) {
+							freezeTypeReplaceValue = "Total Freeze";
+						} else if ("D".equalsIgnoreCase(freezeTypeTagValue)) {
+							freezeTypeReplaceValue = "Debit Freeze";
+						} else if ("C".equalsIgnoreCase(freezeTypeTagValue)) {
+							freezeTypeReplaceValue = "Credit Freeze";
+						}
+						CourtOrder.mLogger.debug("existing freezeType : " + freezeTypeReplaceValue);
+
+						String acctType = objWorkList.getVal("AcctType");
+						String accIndicator = objWorkList.getVal("AcctIndicator");
+						CourtOrder.mLogger.debug("accIndicator : " + accIndicator);
+						if ("I".equalsIgnoreCase(accIndicator)) {
+							acctType = acctType + "-Islamic";
+						}
+						CourtOrder.mLogger.debug("acctType : " + acctType);
+						String hostAccStatus = objWorkList.getVal("HostAcctStatus");
+						CourtOrder.mLogger.debug("hostAccStatus : " + hostAccStatus);
+						String accStatusValue = "";
+						if ("SBA".equalsIgnoreCase(acctType) || "ODA".equalsIgnoreCase(acctType)
+								|| "CAA".equalsIgnoreCase(acctType) || "SBA-Islamic".equalsIgnoreCase(acctType)
+								|| "ODA-Islamic".equalsIgnoreCase(acctType)
+								|| "CAA-Islamic".equalsIgnoreCase(acctType)) {
+							if ("F".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Frozen";
+							} else if ("C".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Closed";
+							} else if ("D".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Debit Frozen";
+							} else if ("R".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Credit Frozen";
+							} else if ("M".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Dormant";
+							} else if ("A".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Active";
+							} else if ("O".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Open";
+							} else if ("I".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Inactive";
+							} else {
+								accStatusValue = hostAccStatus;
+							}
+						} else if ("TDA".equalsIgnoreCase(acctType) || "TUA".equalsIgnoreCase(acctType)
+								|| "TDA-Islamic".equalsIgnoreCase(acctType)
+								|| "TUA-Islamic".equalsIgnoreCase(acctType)) {
+
+							if ("O".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Open";
+							} else if ("C".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Closed";
+							} else if ("F".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Frozen";
+							} else if ("R".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Credit Frozen";
+							} else {
+								accStatusValue = hostAccStatus;
+							}
+						} else if ("CLA".equalsIgnoreCase(acctType) || "LAA".equalsIgnoreCase(acctType)
+								|| "CLA-Islamic".equalsIgnoreCase(acctType)
+								|| "LAA-Islamic".equalsIgnoreCase(acctType)) {
+							if ("F".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Frozen";
+							} else if ("A".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Active";
+							} else if ("C".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Closed";
+							} else if ("D".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Debit frozen";
+							} else if ("R".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Credit Frozen";
+							} else if ("P".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Performing";
+							} else if ("N".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Non Performing";
+							} else {
+								accStatusValue = hostAccStatus;
+							}
+						} else if ("MTF".equalsIgnoreCase(acctType) || "MTF-Islamic".equalsIgnoreCase(acctType)) {
+							if ("C".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Closed";
+							} else if ("P".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Pending for Closure";
+							} else if ("R".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Refer to supervisor";
+							} else if ("A".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Active";
+							} else if ("F".equalsIgnoreCase(hostAccStatus)) {
+								accStatusValue = "Freeze";
+							} else {
+								accStatusValue = hostAccStatus;
+							}
+						} else {
+							accStatusValue = hostAccStatus;
+						}
+
+						CourtOrder.mLogger.debug("Final accStatusValue : " + accStatusValue);
+
+						JSONObject obj = new JSONObject();
+						// obj.put("CIF No",objWorkList.getVal("CIFID"));
+						obj.put("CIF ID", cif); // hardcoded for testing
+						obj.put("Account ID", objWorkList.getVal("Acid"));
+						obj.put("Account Type", acctType);
+						obj.put("Account Status", accStatusValue);
+						obj.put("Is Joint Account", objWorkList.getVal("JntAcctIndicator"));
+						obj.put("Category", objWorkList.getVal("AccountCategory"));
+						obj.put("Existing Freeze Type", freezeTypeReplaceValue);
+						obj.put("Freeze Reason Code", objWorkList.getVal("FreezeReasonCode"));
+						obj.put("Freeze Remarks", objWorkList.getVal("FreezeRemarks"));
+						obj.put("Account Balance", objWorkList.getVal("AcctBal"));
+						obj.put("Product ID", objWorkList.getVal("ProductId"));
+						obj.put("Currency Code", objWorkList.getVal("CrnCode"));
+						obj.put("Account Name", objWorkList.getVal("AccountName"));
+						obj.put("IBAN", objWorkList.getVal("Foracid"));
+						obj.put("Account Opening Date", objWorkList.getVal("AcctOpnDt"));
+						obj.put("Ledger Balance", objWorkList.getVal("LedgerBalanceinAED"));
+						CourtOrder.mLogger.debug("IsIslamic : " + IsIslamic);
+						//
+
+						if ("Closed".equalsIgnoreCase(accStatusValue)) {
+							jsonArray2.add(obj);
+						} else {
+							jsonArray1.add(obj);
+						}
+						//
+						String finAccDetDetails = objWorkList.getVal("FINAccountDetail");
+
+						finAccDetDetails = "<FINAccountDetail>" + finAccDetDetails + "</FINAccountDetail>";
+						CourtOrder.mLogger.debug("finAccDetDetails : " + finAccDetDetails);
+						XMLParser xmlParserSocketDetailsFinAccDtls = new XMLParser(finAccDetDetails);
+
+						NGXmlList objWorkList2 = xmlParserSocketDetailsFinAccDtls.createList("FINAccountDetail",
+								"AddtnlFreezeDtls");
+						
+						for (; objWorkList2.hasMoreElements(true); objWorkList2.skip(true)) {
+							String addFreezDet = objWorkList2.getVal("AddtnlFreezeDtls");
+							if (!"".equalsIgnoreCase(addFreezDet) && !addFreezDet.isEmpty()) {
+								addFreezDet = "<FINAccountDetail>" + addFreezDet + "</FINAccountDetail>";
+								CourtOrder.mLogger.debug("addFreezDet : " + addFreezDet);
+								XMLParser xmlParserSocketDetailsAddFrezDtls = new XMLParser(addFreezDet);
+
+								String freezeReasonCodeAdd = xmlParserSocketDetailsAddFrezDtls
+										.getValueOf("FreezeReasonCode");
+								String freezeRemarksAdd = xmlParserSocketDetailsAddFrezDtls.getValueOf("FreezeRemarks");
+								CourtOrder.mLogger.debug("freezeReasonCodeAdd : " + freezeReasonCodeAdd);
+								JSONObject obj2 = new JSONObject();
+								if (!"".equalsIgnoreCase(freezeReasonCodeAdd) && !freezeReasonCodeAdd.isEmpty()) {
+
+									obj2.put("CIF ID", cif); // hardcoded
+									obj2.put("Account ID", objWorkList.getVal("Acid"));
+									obj2.put("Account Type", acctType);
+									obj2.put("Account Status", accStatusValue);
+									obj2.put("Is Joint Account", objWorkList.getVal("JntAcctIndicator"));
+									obj2.put("Category", objWorkList.getVal("AccountCategory"));
+									obj2.put("Existing Freeze Type", freezeTypeReplaceValue);
+									obj2.put("Freeze Reason Code", freezeReasonCodeAdd);
+									obj2.put("Freeze Remarks", freezeRemarksAdd);
+									obj2.put("Account Balance", objWorkList.getVal("AcctBal"));
+									obj2.put("Product ID", objWorkList.getVal("ProductId"));
+									obj2.put("Currency Code", objWorkList.getVal("CrnCode"));
+									obj2.put("Account Name", objWorkList.getVal("AccountName"));
+									obj2.put("IBAN", objWorkList.getVal("Foracid"));
+									obj2.put("Account Opening Date", objWorkList.getVal("AcctOpnDt"));
+									obj2.put("Ledger Balance", objWorkList.getVal("LedgerBalanceinAED"));
+								}
+								if ("Closed".equalsIgnoreCase(accStatusValue)
+										&& !"".equalsIgnoreCase(freezeReasonCodeAdd)
+										&& !freezeReasonCodeAdd.isEmpty()) {
+									jsonArray2.add(obj2);
+								} else if (!"".equalsIgnoreCase(freezeReasonCodeAdd)
+										&& !freezeReasonCodeAdd.isEmpty()) {
+									jsonArray1.add(obj2);
+								}
+							}
+						}
+
+					}
+
+					// By sudhanshu Rathore
+					// for sequencing
+					final String account_Status = "Account Status";
+					Collections.sort(jsonArray1, new Comparator<JSONObject>() {
+
+						@Override
+						public int compare(JSONObject o1, JSONObject o2) {
+							String val1 = new String();
+							String val2 = new String();
+							try {
+								val1 = (String) o1.get(account_Status);
+								val2 = (String) o2.get(account_Status);
+							} catch (Exception e) {
+
+							}
+
+							return val1.compareTo(val2);
+						}
+
+					});
+
+					//
+					CourtOrder.mLogger.debug("jsonArray MQ_response.contains(<FINAccountDetail>): " + jsonArray1);
+					CourtOrder.mLogger
+							.debug("jsonArray MQ_response.contains(<FINAccountDetail>) only closed: " + jsonArray2);
+
+					if ("Individual".equalsIgnoreCase(customer_type)
+							&& !"Y".equalsIgnoreCase(IsConventionalAccSummary)) {
+						iform.addDataToGrid("NG_COURTORDER_GR_INDIVIDUAL_PRODUCT_DETAILS", jsonArray1);
+						iform.addDataToGrid("NG_COURTORDER_GR_INDIVIDUAL_PRODUCT_DETAILS", jsonArray2);
+					} else if ("NonIndividual".equalsIgnoreCase(customer_type)
+							&& !"Y".equalsIgnoreCase(IsConventionalAccSummary)) {
+						iform.addDataToGrid("NG_COURTORDER_GR_NON_INDIVIDUAL_PRODUCT_DETAILS", jsonArray1);
+						iform.addDataToGrid("NG_COURTORDER_GR_NON_INDIVIDUAL_PRODUCT_DETAILS", jsonArray2);
+					}
+					UpdateCustomFlags.updateAccountSummaryFlag(iform, wi_name, rowIndex, customer_type, prodFetchType);
+					// for updating IsConventionalAccSummary = Y from iform
+					// methods to reflect on runtime
+					setConventionalFlag(iform, customer_type, prodFetchType, rowIndex, "Initiation_Maker");
+				}
+
+				if ("I".equalsIgnoreCase(IsIslamic) || "B".equalsIgnoreCase(IsIslamic)) {
+					Account_Summary_input_xml = Account_Summary.getString("INPUT_XML")
+							.replaceAll("#AccountIndicator#", "B").replaceAll("#CIFID#", cif);
+					MQ_response = MQ_connection_response(iform, controlName, data, Account_Summary_input_xml);
+					xmlParserSocketDetails = new XMLParser(MQ_response);
+					CourtOrder.mLogger.debug(" xmlParserSocketDetails : " + xmlParserSocketDetails);
+
+					return_code = xmlParserSocketDetails.getValueOf("ReturnCode");
+					CourtOrder.mLogger.debug("Return Code: " + return_code);
+					return_desc = xmlParserSocketDetails.getValueOf("ReturnDesc");
+					CourtOrder.mLogger.debug("return_desc : " + return_desc);
+
+					if (return_code.equals("0000")) {
+
+						if (MQ_response.contains("<FetchIBSAccountListRes>")) {
+							JSONArray jsonArray1 = new JSONArray();
+							JSONArray jsonArray2 = new JSONArray();
+
+							NGXmlList objWorkList = xmlParserSocketDetails.createList("FetchIBSAccountListRes",
+									"IBSAccountDetail");
+							for (; objWorkList.hasMoreElements(true); objWorkList.skip(true)) {
+
+								// for testing start
+								String dummyCIF = "";
+								if ("customerProdFetch".equalsIgnoreCase(prodFetchType)) {
+									dummyCIF = iform.getTableCellValue("Grid_Individual_Customer",
+											Integer.parseInt(rowIndex), 1);
+									;
+								} else if ("relatedProdFetch".equalsIgnoreCase(prodFetchType)) {
+									dummyCIF = iform.getTableCellValue("Grid_non_Individual_Customer",
+											Integer.parseInt(rowIndex), 1);
+									;
+								}
+								CourtOrder.mLogger.debug(" dummyCIF in acc summary is : " + dummyCIF);
+
+								// end
+								// obj.put("CIF
+								// No",objWorkList.getVal("CIFID"));
+								JSONObject obj = new JSONObject();
+								String acctType = objWorkList.getVal("AcctType");
+								acctType = acctType + "-Islamic";
+
+								String freezeTypeTagValue = objWorkList.getVal("FreezeType");
+								String freezeTypeReplaceValue = "";
+
+								if ("T".equalsIgnoreCase(freezeTypeTagValue)) {
+									freezeTypeReplaceValue = "Total Freeze";
+								} else if ("D".equalsIgnoreCase(freezeTypeTagValue)) {
+									freezeTypeReplaceValue = "Debit Freeze";
+								} else if ("C".equalsIgnoreCase(freezeTypeTagValue)) {
+									freezeTypeReplaceValue = "Credit Freeze";
+								}
+								CourtOrder.mLogger.debug("existing freezeType islamic : " + freezeTypeReplaceValue);
+								//
+								String hostAccStatus = objWorkList.getVal("HostAcctStatus");
+								CourtOrder.mLogger.debug("hostAccStatus islamic : " + hostAccStatus);
+								String accStatusValue = "";
+
+								if ("TDA-Islamic".equalsIgnoreCase(acctType)
+										|| "TUA-Islamic".equalsIgnoreCase(acctType)) {
+
+									if ("O".equalsIgnoreCase(hostAccStatus)) {
+										accStatusValue = "Open";
+									} else if ("C".equalsIgnoreCase(hostAccStatus)) {
+										accStatusValue = "Closed";
+									} else if ("F".equalsIgnoreCase(hostAccStatus)) {
+										accStatusValue = "Frozen";
+									} else if ("R".equalsIgnoreCase(hostAccStatus)) {
+										accStatusValue = "Credit Frozen";
+									} else if ("A".equalsIgnoreCase(hostAccStatus)) {
+										accStatusValue = "Active";
+									} else {
+										accStatusValue = hostAccStatus;
+									}
+								}
+								//
+
+								obj.put("CIF ID", cif);
+								obj.put("Account ID", objWorkList.getVal("Acid"));
+								obj.put("Account Type", acctType);
+								obj.put("Account Status", accStatusValue);
+								obj.put("Is Joint Account", objWorkList.getVal("JntAcctIndicator"));
+								obj.put("Category", objWorkList.getVal("AccountCategory"));
+								obj.put("Existing Freeze Type", freezeTypeReplaceValue);
+								obj.put("Freeze Reason Code", objWorkList.getVal("FreezeReasonCode"));
+								obj.put("Freeze Remarks", objWorkList.getVal("FreezeRemarks"));
+								obj.put("Account Balance", objWorkList.getVal("AcctBal"));
+								obj.put("IsIslamic", "Y");
+								obj.put("Product ID", objWorkList.getVal("ProductId"));
+								obj.put("Currency Code", objWorkList.getVal("CrnCode"));
+								obj.put("Account Name", objWorkList.getVal("AccountName"));
+								obj.put("IBAN", objWorkList.getVal("Foracid"));
+								obj.put("Account Opening Date", objWorkList.getVal("AcctOpnDt"));
+								obj.put("Ledger Balance", objWorkList.getVal("LedgerBalanceinAED"));
+
+								if ("Closed".equalsIgnoreCase(accStatusValue)) {
+									jsonArray2.add(obj);
+								} else {
+									jsonArray1.add(obj);
+								}
+
+								//
+								String finAccDetDetails = objWorkList.getVal("FINAccountDetail");
+
+								finAccDetDetails = "<FINAccountDetail>" + finAccDetDetails + "</FINAccountDetail>";
+								CourtOrder.mLogger.debug("finAccDetDetails : " + finAccDetDetails);
+								XMLParser xmlParserSocketDetailsFinAccDtls = new XMLParser(finAccDetDetails);
+
+								NGXmlList objWorkList2 = xmlParserSocketDetailsFinAccDtls.createList("FINAccountDetail",
+										"AddtnlFreezeDtls");
+								
+								for (; objWorkList2.hasMoreElements(true); objWorkList2.skip(true)) {
+									String addFreezDet = objWorkList2.getVal("AddtnlFreezeDtls");
+									if (!"".equalsIgnoreCase(addFreezDet) && !addFreezDet.isEmpty()) {
+										addFreezDet = "<FINAccountDetail>" + addFreezDet + "</FINAccountDetail>";
+										CourtOrder.mLogger.debug("addFreezDet : " + addFreezDet);
+										XMLParser xmlParserSocketDetailsAddFrezDtls = new XMLParser(addFreezDet);
+
+										String freezeReasonCodeAdd = xmlParserSocketDetailsAddFrezDtls
+												.getValueOf("FreezeReasonCode");
+										String freezeRemarksAdd = xmlParserSocketDetailsAddFrezDtls.getValueOf("FreezeRemarks");
+										CourtOrder.mLogger.debug("freezeReasonCodeAdd : " + freezeReasonCodeAdd);
+										JSONObject obj2 = new JSONObject();
+										if (!"".equalsIgnoreCase(freezeReasonCodeAdd)
+												&& !freezeReasonCodeAdd.isEmpty()) {
+
+											obj2.put("CIF ID", cif); // hardcoded
+																		// for
+																		// testing
+											obj2.put("Account ID", objWorkList.getVal("Acid"));
+											obj2.put("Account Type", acctType);
+											obj2.put("Account Status", accStatusValue);
+											obj2.put("Is Joint Account", objWorkList.getVal("JntAcctIndicator"));
+											obj2.put("Category", objWorkList.getVal("AccountCategory"));
+											obj2.put("Existing Freeze Type", "");
+											obj2.put("Freeze Reason Code", freezeReasonCodeAdd);
+											obj2.put("Freeze Remarks", freezeRemarksAdd);
+											obj2.put("Account Balance", objWorkList.getVal("AcctBal"));
+											obj2.put("Product ID", objWorkList.getVal("ProductId"));
+											obj2.put("Currency Code", objWorkList.getVal("CrnCode"));
+											obj2.put("Account Name", objWorkList.getVal("AccountName"));
+											obj2.put("IBAN", objWorkList.getVal("Foracid"));
+											obj2.put("Account Opening Date", objWorkList.getVal("AcctOpnDt"));
+											obj2.put("Ledger Balance", objWorkList.getVal("LedgerBalanceinAED"));
+										}
+										if ("Closed".equalsIgnoreCase(accStatusValue)
+												&& !"".equalsIgnoreCase(freezeReasonCodeAdd)
+												&& !freezeReasonCodeAdd.isEmpty()) {
+											jsonArray2.add(obj2);
+										} else if (!"".equalsIgnoreCase(freezeReasonCodeAdd)
+												&& !freezeReasonCodeAdd.isEmpty()) {
+											jsonArray1.add(obj2);
+										}
+									}
+								}
+							}
+							// By sudhanshu Rathore
+							// for sequencing
+							final String account_Status = "Account Status";
+							Collections.sort(jsonArray1, new Comparator<JSONObject>() {
+
+								@Override
+								public int compare(JSONObject o1, JSONObject o2) {
+									String val1 = new String();
+									String val2 = new String();
+									try {
+										val1 = (String) o1.get(account_Status);
+										val2 = (String) o2.get(account_Status);
+									} catch (Exception e) {
+
+									}
+
+									return val1.compareTo(val2);
+								}
+
+							});
+							CourtOrder.mLogger
+									.debug("jsonArray MQ_response.contains<FetchIBSAccountListRes>) : " + jsonArray1);
+							CourtOrder.mLogger
+									.debug("jsonArray MQ_response.contains<FetchIBSAccountListRes>) only closed: "
+											+ jsonArray2);
+							if ("Individual".equalsIgnoreCase(customer_type)) {
+								iform.addDataToGrid("NG_COURTORDER_GR_INDIVIDUAL_PRODUCT_DETAILS", jsonArray1);
+								iform.addDataToGrid("NG_COURTORDER_GR_INDIVIDUAL_PRODUCT_DETAILS", jsonArray2);
+							} else if ("NonIndividual".equalsIgnoreCase(customer_type)) {
+								iform.addDataToGrid("NG_COURTORDER_GR_NON_INDIVIDUAL_PRODUCT_DETAILS", jsonArray1);
+								iform.addDataToGrid("NG_COURTORDER_GR_NON_INDIVIDUAL_PRODUCT_DETAILS", jsonArray2);
+							}
+						}
+						UpdateCustomFlags.updateAccountSummaryFlag(iform, wi_name, rowIndex, customer_type,
+								prodFetchType);
+					} else if (return_code.equalsIgnoreCase("MANT-001")) {
+						UpdateCustomFlags.updateAccountSummaryFlag(iform, wi_name, rowIndex, customer_type,
+								prodFetchType);
+					} else {
+						CourtOrder.mLogger.debug("Error in account summary Islamic ");
+						// String result =
+						// "Success"+"_"+rowIndex+"_"+customer_type+"_"+prodFetchType;
+						// //hardcoded
+						return "IslamicError";
+					}
+				}
+				String result = "Success" + "_" + rowIndex + "_" + customer_type + "_" + prodFetchType + "_" + cif;
+				CourtOrder.mLogger.debug("result in account summary is :" + result);
+				return result;
+
+			} else if ("CINF362".equalsIgnoreCase(return_code)
+					&& "FIN : Account Details Not Found for the Given Data".equalsIgnoreCase(return_desc)) {
+
+				UpdateCustomFlags.updateAccountSummaryFlag(iform, wi_name, rowIndex, customer_type, prodFetchType);
+				String result = "Success" + "_" + rowIndex + "_" + customer_type + "_" + prodFetchType + "_" + cif;
+				CourtOrder.mLogger.debug("result in account summary is :" + result);
+				return result;
+
+			}
+
+			else {
+				CourtOrder.mLogger.debug("Error in account summary: ");
+				// String result =
+				// "Success"+"_"+rowIndex+"_"+customer_type+"_"+prodFetchType;
+				// //hardcoded
+				return "error";
+			}
+
+		} catch (Exception e) {
+			String exception = customException(e);
+			CourtOrder.mLogger.debug("Exception in execute_AccountSummary :" + exception);
+		}
+		return "";
+	}

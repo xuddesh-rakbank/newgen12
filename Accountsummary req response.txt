@@ -1,0 +1,97 @@
+	Request
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<EE_EAI_MESSAGE>
+    <EE_EAI_HEADER>
+        <MsgFormat>ACCOUNT_SUMMARY</MsgFormat>
+        <MsgVersion>0000</MsgVersion>
+        <RequestorChannelId>EBC.WBA</RequestorChannelId>
+        <RequestorUserId>RAKUSER</RequestorUserId>
+        <RequestorLanguage>E</RequestorLanguage>
+        <RequestorSecurityInfo>secure</RequestorSecurityInfo>
+        <ReturnCode>911</ReturnCode>
+        <ReturnDesc>Issuer Timeout</ReturnDesc>
+        <MessageId>RPAQR9XH1762201344897-1243397</MessageId>
+        <Extra1>REQ||RAK.VTUSER</Extra1>
+        <Extra2>2025-11-04T00:22:24.904+05:30</Extra2>
+    </EE_EAI_HEADER>
+    <FetchAccountListReq>
+        <BankId>RAK</BankId>
+        <CIFID>0786309</CIFID>
+        <FetchClosedAcct>N</FetchClosedAcct>
+        <AccountIndicator>A</AccountIndicator>
+    </FetchAccountListReq>
+</EE_EAI_MESSAGE>
+ response
+ 
+<?xml version="1.0"?>
+<EE_EAI_MESSAGE xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <EE_EAI_HEADER>
+        <MsgFormat>ACCOUNT_SUMMARY</MsgFormat>
+        <MsgVersion>0000</MsgVersion>
+        <RequestorChannelId>EBC.WBA</RequestorChannelId>
+        <RequestorUserId>RAKUSER</RequestorUserId>
+        <RequestorLanguage>E</RequestorLanguage>
+        <RequestorSecurityInfo>secure</RequestorSecurityInfo>
+        <ReturnCode>0000</ReturnCode>
+        <ReturnDesc>Successful</ReturnDesc>
+        <MessageId>RPAQR9XH1762201344897-1243397</MessageId>
+        <Extra1>REP||RAK.VTUSER</Extra1>
+        <Extra2>2025-11-04T00:22:24.904+05:30</Extra2>
+    </EE_EAI_HEADER>
+    <FetchFINAccountListRes>
+        <CIFID>0786309</CIFID>
+        <BankId>RAK</BankId>
+        <ProdProc>FINACLECORE,CAPS,RLS</ProdProc>
+        <StatusAsOf>2026-01-30T00:00:00.000+04:00</StatusAsOf>
+        <IsIslamic>C</IsIslamic>
+        <IsPremium>N</IsPremium>
+        <IsWealth>N</IsWealth>
+        <CustStatus>Active</CustStatus>
+        <FINAccountDetail>
+            <BranchId>028</BranchId>
+            <Acid>0028786309100</Acid>
+            <Foracid>AE050400000028786309100</Foracid>
+            <AcctType>SBA</AcctType>
+            <AccountCategory>ASNP1</AccountCategory>
+            <CrnCode>AED</CrnCode>
+            <NicName>ST 0786309</NicName>
+            <AccountName>ACCOUNT NAME FOR    0028786309100</AccountName>
+            <AcctBal>0</AcctBal>
+            <LedgerBalance>0</LedgerBalance>
+            <LedgerBalanceinAED>0</LedgerBalanceinAED>
+            <EffAvailableBal>0</EffAvailableBal>
+            <JntAcctIndicator>N</JntAcctIndicator>
+            <AcctStatus>001</AcctStatus>
+            <AcctAccess>N</AcctAccess>
+            <AcctOpnDt>2010-03-30</AcctOpnDt>
+            <EquivalentAmt>0</EquivalentAmt>
+            <ProductId>FAST SAVER - PBD NORMAL</ProductId>
+            <ModeOfOperation>SINGLY</ModeOfOperation>
+            <FFDLinked>N</FFDLinked>
+        </FINAccountDetail>
+        <FINAccountDetail>
+            <BranchId>CC</BranchId>
+            <Acid>5239266126596005</Acid>
+            <AcctType>CCD</AcctType>
+            <AccountCategory>P</AccountCategory>
+            <NicName>012376300</NicName>
+            <AccountName>012376300</AccountName>
+            <AcctBal>-12088.21</AcctBal>
+            <CurrentBal>-12088.21</CurrentBal>
+            <LedgerBalanceinAED>0</LedgerBalanceinAED>
+            <AcctStatus>012</AcctStatus>
+            <AcctAccess>N</AcctAccess>
+            <AcctOpnDt>2026-02-11</AcctOpnDt>
+            <MaturityDt>2027-01-31</MaturityDt>
+            <LastStmtDate>2026-01-11</LastStmtDate>
+            <PymtDueDate>2026-02-05</PymtDueDate>
+            <CreditLimit>6900</CreditLimit>
+            <ProductId>Titanium MasterCard</ProductId>
+            <ProdDescription>TITANIUM-EXPAT</ProdDescription>
+            <RelationshipManager>EMB_NAME_012376300</RelationshipManager>
+            <FFDLinked>N</FFDLinked>
+            <CardStatus>CR06</CardStatus>
+        </FINAccountDetail>
+    </FetchFINAccountListRes>
+</EE_EAI_MESSAGE>
+ 
