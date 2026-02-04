@@ -1,0 +1,781 @@
+package com.newgen.iforms.user;
+
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+import com.newgen.iforms.custom.IFormReference;
+import com.newgen.omni.jts.cmgr.XMLParser;
+import com.newgen.omni.wf.util.app.NGEjbClient;
+import com.newgen.wfdesktop.xmlapi.WFCallBroker;
+
+public class DigitalAO_AccountSummary extends DigitalAO_Common {
+
+    private static NGEjbClient ngEjbClientExposure;
+
+    /* ============================================================
+       CLICK EVENT ENTRY POINT
+       ============================================================ */
+    public String onclickevent(IFormReference iform,String control,String StringData) throws FileNotFoundException, IOException, ParserConfigurationException, SAXException 
+    {
+        try {
+final HashMap<String, String> CheckGridDataMap = new HashMap<String, String>();
+			
+			ngEjbClientExposure = NGEjbClient.getSharedInstance();
+			String processInstanceID=getWorkitemName(iform);
+			String workstepName= getActivityName(iform);
+			DigitalAO.mLogger.debug("processInstanceID :" +processInstanceID);
+			String cifId=(String) iform.getValue("CIF");
+			DigitalAO.mLogger.debug("cifId :" +cifId);
+			
+			int socketConnectionTimeOut=60;
+			int integrationWaitTime=65;
+			CheckGridDataMap.put("CIF", cifId);
+			
+			String cabinetName = getCabinetName(iform);
+	    	String wi_name = getWorkitemName(iform);
+	    	String ws_name = getActivityName(iform);
+	    	String sessionID = getSessionId(iform);
+	    	String userName = getUserName(iform);
+	    	String jtsPort=iform.getServerPort();
+	    	String jtsIP=iform.getServerIp();
+			
+			HashMap<String, String> socketDetailsMap = socketConnectionDetails(cabinetName, jtsIP, jtsPort, sessionID);
+		/* ============================================================
+               DELETE OLD MISCELLANEOUS
+               ============================================================ */
+            String delXML = getAPProcedureInputXML(
+                    cabinetName, sessionID,
+                    "NG_DAO_SP_Delete_AccountSummary",
+                    "'" + processInstanceID + "'"
+            );
+
+            String delOut = WFNGExecute(delXML, jtsIP, jtsPort, 1);
+
+            if (!delOut.contains("<MainCode>0</MainCode>")) {
+                DigitalAO.mLogger.debug("Delete failed");
+            }
+
+            /* ============================================================
+               INTERNAL EXPOSURE CALL
+               ============================================================ */
+            HashMap<String, String> gridMap = new HashMap<>();
+            gridMap.put("CIF", cifId);
+
+        
+            /* ============================================================
+               ACCOUNT SUMMARY INTEGRATION (YOUR NEW CODE)
+               ============================================================ */
+            String  intergrationStatus = executeAccountSummary(iform,processInstanceID, CheckGridDataMap, integrationWaitTime, socketConnectionTimeOut, socketDetailsMap);
+
+            if(!intergrationStatus.equalsIgnoreCase("N"))
+    	    {
+    	    	DigitalAO.mLogger.debug("AccountSummary call successful with intergrationStatus: " + intergrationStatus);
+    	    	String inputXML = DigitalAO_Common.getAPProcedureInputXML(cabinetName,sessionID,"NG_DAO_SP_AccountSummary","'"+processInstanceID+"'");
+    	    	DigitalAO.mLogger.debug("AP proc inputXML :" +inputXML);
+    	    	String  strOutputXml = WFNGExecute(inputXML, jtsIP, jtsPort, 1);
+    	    	DigitalAO.mLogger.debug("AP proc strOutputXml :" +strOutputXml);
+    	    	if(strOutputXml.indexOf("<MainCode>0</MainCode>")>-1)	
+    			{
+    	    		DigitalAO.mLogger.debug("AccountSummary Inserted in procedure successfully ");
+    	    		return "Inserted";
+    			}	
+    			else
+    			{
+    				DigitalAO.mLogger.debug("AccountSummary Not inserted in procedure  ");
+    				return "NotInserted";
+    			}
+    	    }
+    	    else{
+    	    	DigitalAO.mLogger.debug("Internal exposure call failed with intergrationStatus: " + intergrationStatus);
+    	    	return "NotInserted";
+    	    }
+
+            /* ============================================================
+               INSERT NEW MISCELLANEOUS
+               ============================================================ */
+           
+     	    
+    		}
+    		catch (Exception e) {
+    			DigitalAO.mLogger.debug("getMessage:  onclickevent :" + e.getMessage());
+    			 return "NotInserted";
+    		}
+    		
+    }
+
+    public static String socketConnection(String cabinetName, String username, String sessionId, String sJtsIp, String iJtsPort, String processInstanceID, String ws_name,
+			int connection_timeout, int integrationWaitTime,StringBuilder sInputXML,HashMap<String, String> socketDetailsMap)
+	{
+
+		String socketServerIP;
+		int socketServerPort;
+		Socket socket = null;
+		OutputStream out = null;
+		InputStream socketInputStream = null;
+		DataOutputStream dout = null;
+		DataInputStream din = null;
+		String outputResponse = null;
+		String inputRequest = null;
+		String inputMessageID = null;
+
+
+
+		try
+		{
+
+			DigitalAO.mLogger.debug("userName "+ username);
+			DigitalAO.mLogger.debug("SessionId "+ sessionId);
+
+			socketServerIP=socketDetailsMap.get("SocketServerIP");
+			DigitalAO.mLogger.debug("SocketServerIP "+ socketServerIP);
+			socketServerPort=Integer.parseInt(socketDetailsMap.get("SocketServerPort"));
+			DigitalAO.mLogger.debug("SocketServerPort "+ socketServerPort);
+
+	   		if (!("".equalsIgnoreCase(socketServerIP) && socketServerIP == null && socketServerPort==0))
+	   		{
+
+    			socket = new Socket(socketServerIP, socketServerPort);
+    			socket.setSoTimeout(connection_timeout*1000);
+    			out = socket.getOutputStream();
+    			socketInputStream = socket.getInputStream();
+    			dout = new DataOutputStream(out);
+    			din = new DataInputStream(socketInputStream);
+    			DigitalAO.mLogger.debug("Dout " + dout);
+    			DigitalAO.mLogger.debug("Din " + din);
+
+    			outputResponse = "";
+
+    			inputRequest = getRequestXML( cabinetName,sessionId ,processInstanceID, ws_name, username, sInputXML);
+
+
+    			if (inputRequest != null && inputRequest.length() > 0)
+    			{
+    				int inputRequestLen = inputRequest.getBytes("UTF-16LE").length;
+    				DigitalAO.mLogger.debug("RequestLen: "+inputRequestLen + "");
+    				inputRequest = inputRequestLen + "##8##;" + inputRequest;
+    				DigitalAO.mLogger.debug("InputRequest"+"Input Request Bytes : "+ inputRequest.getBytes("UTF-16LE"));
+    				dout.write(inputRequest.getBytes("UTF-16LE"));dout.flush();
+    			}
+    			byte[] readBuffer = new byte[500];
+    			int num = din.read(readBuffer);
+    			if (num > 0)
+    			{
+
+    				byte[] arrayBytes = new byte[num];
+    				System.arraycopy(readBuffer, 0, arrayBytes, 0, num);
+    				outputResponse = outputResponse+ new String(arrayBytes, "UTF-16LE");
+					inputMessageID = outputResponse;
+    				DigitalAO.mLogger.debug("OutputResponse: "+outputResponse);
+
+    				if(!"".equalsIgnoreCase(outputResponse))
+    					outputResponse = getResponseXML(cabinetName,sJtsIp,iJtsPort,sessionId, processInstanceID,outputResponse,integrationWaitTime );
+
+    				if(outputResponse.contains("&lt;"))
+    				{
+    					outputResponse=outputResponse.replaceAll("&lt;", "<");
+    					outputResponse=outputResponse.replaceAll("&gt;", ">");
+    				}
+    			}
+    			socket.close();
+
+				outputResponse = outputResponse.replaceAll("</MessageId>","</MessageId><InputMessageId>"+inputMessageID+"</InputMessageId>");
+
+				return outputResponse;
+
+    	 		}
+
+    		else
+    		{
+    			DigitalAO.mLogger.debug("SocketServerIp and SocketServerPort is not maintained "+"");
+    			DigitalAO.mLogger.debug("SocketServerIp is not maintained "+	socketServerIP);
+    			DigitalAO.mLogger.debug(" SocketServerPort is not maintained "+	socketServerPort);
+    			return "Socket Details not maintained";
+    		}
+
+		}
+
+		catch (Exception e)
+		{
+			DigitalAO.mLogger.debug("Exception Occured Mq_connection_CC"+e.getStackTrace());
+			return "";
+		}
+		finally
+		{
+			try
+			{
+				if(out != null)
+				{
+					out.close();
+					out=null;
+				}
+				if(socketInputStream != null)
+				{
+
+					socketInputStream.close();
+					socketInputStream=null;
+				}
+				if(dout != null)
+				{
+
+					dout.close();
+					dout=null;
+				}
+				if(din != null)
+				{
+
+					din.close();
+					din=null;
+				}
+				if(socket != null)
+				{
+					if(!socket.isClosed())
+						socket.close();
+					socket=null;
+				}
+
+			}
+
+			catch(Exception e)
+			{
+				DigitalAO.mLogger.debug("Final Exception Occured Mq_connection_CC"+e.getStackTrace());
+				//printException(e);
+			}
+		}
+
+
+	}
+    private static String getRequestXML(String cabinetName, String sessionId,
+			String processInstanceID, String ws_name, String userName, StringBuilder sInputXML)
+	{
+		StringBuffer strBuff = new StringBuffer();
+		strBuff.append("<APMQPUTGET_Input>");
+		strBuff.append("<SessionId>" + sessionId + "</SessionId>");
+		strBuff.append("<EngineName>" + cabinetName + "</EngineName>");
+		strBuff.append("<XMLHISTORY_TABLENAME>NG_DAO_XMLLOG_HISTORY</XMLHISTORY_TABLENAME>");
+		strBuff.append("<WI_NAME>" + processInstanceID + "</WI_NAME>");
+		strBuff.append("<WS_NAME>" + ws_name + "</WS_NAME>");
+		strBuff.append("<USER_NAME>" + userName + "</USER_NAME>");
+		strBuff.append("<MQ_REQUEST_XML>");
+		strBuff.append(sInputXML);
+		strBuff.append("</MQ_REQUEST_XML>");
+		strBuff.append("</APMQPUTGET_Input>");
+		DigitalAO.mLogger.debug("GetRequestXML: "+ strBuff.toString());
+		return strBuff.toString();
+	}
+	
+			
+
+	/* ============================================================
+       WFNGExecute (Shared)
+       ============================================================ */
+    protected static String WFNGExecute(String ipXML, String jtsServerIP, String serverPort, int flag) throws IOException {
+		try {
+			DigitalAO.mLogger.info("WFNGExecute() : " + ipXML + " - " + jtsServerIP + " - " + serverPort + " - " + flag);
+			if (serverPort.startsWith("33")) {
+				DigitalAO.mLogger.info("Inside if WFNGExecute() :");
+				return WFCallBroker.execute(ipXML, jtsServerIP, Integer.parseInt(serverPort), 1);
+			} else {
+				DigitalAO.mLogger.info("Inside else WFNGExecute() :");
+				return ngEjbClientExposure.makeCall(jtsServerIP, serverPort, "WebSphere", ipXML);
+			}
+			//
+		} catch (Exception e) {
+			DigitalAO.mLogger.info("Exception Occured in WF NG Execute : " + e.getMessage());
+			return "Error";
+		}
+
+	}
+
+    /* ============================================================
+       ACCOUNT SUMMARY CLASS (FULL)
+       ============================================================ */
+   
+
+        public  String executeAccountSummary(
+        		IFormReference iform,String wiName, HashMap<String, String> CheckGridDataMap, int integrationWaitTime, int socketConnectionTimeOut,HashMap<String, String> socketDetailsMap) {
+        	String flag = "";
+	    	String return_code = "";
+	    	String cabinetName = getCabinetName(iform);
+	    	String wi_name = getWorkitemName(iform);
+	    	String ws_name = getActivityName(iform);
+	    	String sessionID = getSessionId(iform);
+	    	String userName = getUserName(iform);
+	    	String ServerPort=iform.getServerPort();
+	    	String ServerIp=iform.getServerIp();
+	    	
+	    	DigitalAO.mLogger.debug("cabinetName :" +cabinetName);
+	    	DigitalAO.mLogger.debug("ServerPort :" +ServerPort);
+	    	DigitalAO.mLogger.debug("ServerIp :" +ServerIp);
+	    	DigitalAO.mLogger.debug("sessionID :" +sessionID);
+            try {
+                
+            	String cif = CheckGridDataMap.get("CIF");
+                StringBuilder requestXml = buildRequest(cif);
+                DigitalAO.mLogger.debug("requestXml :" +requestXml);
+                String responseXML = socketConnection(cabinetName, userName,sessionID,ServerIp,ServerPort, wiName, "AccountSummary_Integration", socketConnectionTimeOut, integrationWaitTime,  requestXml,socketDetailsMap );
+                
+                DigitalAO.mLogger.debug("responseXML :" +responseXML);
+
+                
+             // 3. Parse ACCOUNT_SUMMARY XML and insert into DB 
+                String parseFlag = parseAccountSummary( responseXML, wi_name, sessionID, cabinetName, cif ); 
+                DigitalAO.mLogger.debug("ACCOUNT SUMMARY PARSE FLAG: " + parseFlag);
+                return parseFlag;
+
+            } catch (Exception e) {
+                DigitalAO.mLogger.error("ACCOUNT SUMMARY FAILED", e);
+                return "false";
+            }
+        }
+
+        private static StringBuilder buildRequest(String cifId) {
+        	Date d1 = new Date();
+			SimpleDateFormat sdf1 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.mmm");
+			String DateExtra2 = sdf1.format(d1)+"+04:00";
+			
+			SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.mmm");
+			String ReqDateTime = sdf2.format(d1);
+            StringBuilder sb = new StringBuilder();
+
+            sb.append("<EE_EAI_MESSAGE>")
+              .append("<EE_EAI_HEADER>")
+              .append("<MsgFormat>ACCOUNT_SUMMARY</MsgFormat>")
+              .append("<MsgVersion>0000</MsgVersion>")
+              .append("<RequestorChannelId>BPM</RequestorChannelId>")
+              .append("<RequestorUserId>RAKUSER</RequestorUserId>")
+              .append("<RequestorLanguage>E</RequestorLanguage>")
+              .append("<RequestorSecurityInfo>secure</RequestorSecurityInfo>")
+              .append("<ReturnCode>911</ReturnCode>")
+              .append("<ReturnDesc>Issuer Timed Out</ReturnDesc>")
+              .append("<MessageId>ACCOUNT_SUMMARY_0V27</MessageId>")
+              .append("<Extra1>REQ||LAXMANRET.LAXMANRET</Extra1>")
+              .append("<Extra2>").append(DateExtra2).append("</Extra2>")
+              .append("</EE_EAI_HEADER>")
+              .append("<FetchAccountListReq>")
+              .append("<BankId>RAK</BankId>")
+              .append("<CIFID>").append(cifId).append("</CIFID>")
+              .append("<FetchClosedAcct>N</FetchClosedAcct>")
+              .append("<AccountIndicator>A</AccountIndicator>")
+              .append("</FetchAccountListReq>")
+              .append("</EE_EAI_MESSAGE>");
+
+            return sb;
+        }
+
+
+       
+
+        private HashMap<String, String> socketConnectionDetails(String cabinetName, String sJtsIp, String iJtsPort, String sessionID) {
+			HashMap<String, String> socketDetailsMap = new HashMap<String, String>();
+
+			try {
+				DigitalAO.mLogger.debug("Fetching Socket Connection Details.");
+				System.out.println("Fetching Socket Connection Details.");
+
+				String socketDetailsQuery = "SELECT SocketServerIP,SocketServerPort FROM NG_BPM_MQ_TABLE with (nolock) where ProcessName = 'DigitalAO' and CallingSource = 'Utility'";
+
+				String socketDetailsInputXML = DigitalAO_Common.apSelectWithColumnNames(socketDetailsQuery, cabinetName, sessionID);
+				DigitalAO.mLogger.debug("Socket Details APSelect InputXML: " + socketDetailsInputXML);
+
+				String socketDetailsOutputXML = WFNGExecute(socketDetailsInputXML, sJtsIp, iJtsPort, 1);
+				DigitalAO.mLogger.debug("Socket Details APSelect OutputXML: " + socketDetailsOutputXML);
+
+				XMLParser xmlParserSocketDetails = new XMLParser(socketDetailsOutputXML);
+				String socketDetailsMainCode = xmlParserSocketDetails.getValueOf("MainCode");
+				DigitalAO.mLogger.debug("SocketDetailsMainCode: " + socketDetailsMainCode);
+
+				int socketDetailsTotalRecords = Integer.parseInt(xmlParserSocketDetails.getValueOf("TotalRetrieved"));
+				DigitalAO.mLogger.debug("SocketDetailsTotalRecords: " + socketDetailsTotalRecords);
+
+				if (socketDetailsMainCode.equalsIgnoreCase("0") && socketDetailsTotalRecords > 0) {
+					String xmlDataSocketDetails = xmlParserSocketDetails.getNextValueOf("Record");
+					xmlDataSocketDetails = xmlDataSocketDetails.replaceAll("[ ]+>", ">").replaceAll("<[ ]+", "<");
+
+					XMLParser xmlParserSocketDetailsRecord = new XMLParser(xmlDataSocketDetails);
+
+					String socketServerIP = xmlParserSocketDetailsRecord.getValueOf("SocketServerIP");
+					DigitalAO.mLogger.debug("SocketServerIP: " + socketServerIP);
+					socketDetailsMap.put("SocketServerIP", socketServerIP);
+
+					String socketServerPort = xmlParserSocketDetailsRecord.getValueOf("SocketServerPort");
+					DigitalAO.mLogger.debug("SocketServerPort " + socketServerPort);
+					socketDetailsMap.put("SocketServerPort", socketServerPort);
+
+					DigitalAO.mLogger.debug("SocketServer Details found.");
+					
+				}
+			} catch (Exception e) {
+				DigitalAO.mLogger.debug("Exception in getting Socket Connection Details: " + e.getMessage());
+				
+			}
+
+			return socketDetailsMap;
+		}
+
+        private static String getResponseXML(String cabinetName,String sJtsIp,String iJtsPort, String sessionId, String processInstanceID,String message_ID, int integrationWaitTime)
+		{
+
+			String outputResponseXML="";
+			try
+			{
+				String QueryString = "select OUTPUT_XML from NG_DAO_XMLLOG_HISTORY with (nolock) where MESSAGE_ID ='"+message_ID+"' and WI_NAME = '"+processInstanceID+"'";
+
+				String responseInputXML =DigitalAO_Common.apSelectWithColumnNames(QueryString, cabinetName, sessionId);
+				DigitalAO.mLogger.debug("Response APSelect InputXML: "+responseInputXML);
+
+				int Loop_count=0;
+				do
+				{
+					String responseOutputXML=WFNGExecute(responseInputXML,sJtsIp,iJtsPort,1);
+					DigitalAO.mLogger.debug("Response APSelect OutputXML: "+responseOutputXML);
+
+				    XMLParser xmlParserSocketDetails= new XMLParser(responseOutputXML);
+				    String responseMainCode = xmlParserSocketDetails.getValueOf("MainCode");
+				    DigitalAO.mLogger.debug("ResponseMainCode: "+responseMainCode);
+
+
+
+				    int responseTotalRecords = Integer.parseInt(xmlParserSocketDetails.getValueOf("TotalRetrieved"));
+				    DigitalAO.mLogger.debug("ResponseTotalRecords: "+responseTotalRecords);
+
+				    if (responseMainCode.equals("0") && responseTotalRecords > 0)
+					{
+
+						String responseXMLData=xmlParserSocketDetails.getNextValueOf("Record");
+						responseXMLData =responseXMLData.replaceAll("[ ]+>",">").replaceAll("<[ ]+", "<");
+
+		        		XMLParser xmlParserResponseXMLData = new XMLParser(responseXMLData);
+		        		
+		        		outputResponseXML=xmlParserResponseXMLData.getValueOf("OUTPUT_XML");
+		        		
+
+		        		if("".equalsIgnoreCase(outputResponseXML)){
+		        			outputResponseXML="Error";
+		    			}
+		        		break;
+					}
+				    Loop_count++;
+				    Thread.sleep(1000);
+				}
+				while(Loop_count<integrationWaitTime);
+				DigitalAO.mLogger.debug("integrationWaitTime: "+integrationWaitTime);
+
+			}
+			catch(Exception e)
+			{
+				DigitalAO.mLogger.debug("Exception occurred in outputResponseXML" + e.getMessage());
+				outputResponseXML="Error";
+			}
+
+			return outputResponseXML;
+
+		}
+		
+        
+        //parse
+        public static String parseAccountSummary(
+                String xml,
+                String wiName,
+                String sessionId,
+                String cabinetName,
+                String cifId) {
+
+            DigitalAO.mLogger.debug("Inside parseAccountSummary for CIF: " + cifId);
+
+            try {
+                // Parse XML into DOM
+                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                Document doc = dBuilder.parse(new ByteArrayInputStream(xml.getBytes()));
+                doc.getDocumentElement().normalize();
+
+                // Fetch all FINAccountDetail nodes
+                NodeList accountList = doc.getElementsByTagName("FINAccountDetail");
+
+                DigitalAO.mLogger.debug("ACCOUNT_SUMMARY: Total FINAccountDetail nodes = " + accountList.getLength());
+
+                if (accountList.getLength() == 0) {
+                    DigitalAO.mLogger.debug("No FINAccountDetail nodes found in response");
+                    return "false";
+                }
+
+                // Loop through each FINAccountDetail
+                for (int i = 0; i < accountList.getLength(); i++) {
+
+                    Element acc = (Element) accountList.item(i);
+
+                    String branchId        = getTagValue(acc, "BranchId");
+                    String acctType        = getTagValue(acc, "AcctType");
+                    String accountCategory = getTagValue(acc, "AccountCategory");
+                    String crnCode         = getTagValue(acc, "CrnCode");
+                    String productId       = getTagValue(acc, "ProductId");
+                    String prodDesc        = getTagValue(acc, "ProdDescription"); // may be empty
+
+                    DigitalAO.mLogger.debug(
+                        "Parsed Account Row => BranchId=" + branchId +
+                        ", AcctType=" + acctType +
+                        ", AccountCategory=" + accountCategory +
+                        ", CrnCode=" + crnCode +
+                        ", ProductId=" + productId +
+                        ", ProdDescription=" + prodDesc
+                    );
+
+                    String insertFlag = insertAccountSummaryRow(
+                            wiName,
+                            cifId,
+                            branchId,
+                            acctType,
+                            accountCategory,
+                            crnCode,
+                            productId,
+                            prodDesc,
+                            wrapperIP,
+                            wrapperPort,
+                            cabinetName,
+                            sessionId
+                    );
+
+                    if (!insertFlag.equalsIgnoreCase("true")) {
+                        return "false";
+                    }
+
+                }
+
+                return "true";
+
+            } catch (Exception e) {
+                DigitalAO.mLogger.debug("Exception in parseAccountSummary: " + e.getMessage());
+                e.printStackTrace();
+                return "false";
+            }
+        }
+
+       // insert 
+        private static String insertAccountSummaryRow(
+                String wiName,
+                String cifId,
+                String branchId,
+                String acctType,
+                String accountCategory,
+                String crnCode,
+                String productId,
+                String prodDesc,
+                String wrapperIP,
+                String wrapperPort,
+                String cabinetName,
+                String sessionId) {
+
+            String retVal = "false";
+
+            try {
+                // Table name
+                String sTableName = "NG_DAO_ACCOUNT_SUMMARY";
+
+                // Column names
+                String columnName =
+                        "WI_NAME,CIF_ID,BRANCH_ID,ACCT_TYPE,ACCOUNT_CATEGORY,CRN_CODE,PRODUCT_ID,PROD_DESCRIPTION,CREATED_ON";
+
+                // Column values
+                String columnValues =
+                        wiName + "~" +
+                        cifId + "~" +
+                        branchId + "~" +
+                        acctType + "~" +
+                        accountCategory + "~" +
+                        crnCode + "~" +
+                        productId + "~" +
+                        prodDesc + "~" +
+                        "GETDATE()";
+
+                // Build APInsert XML
+                String strInputXml = DigitalAO_Common.apInsert(
+                        cabinetName,
+                        sessionId,
+                        columnName,
+                        columnValues,
+                        sTableName
+                );
+
+                DigitalAO.mLogger.debug("APInsert Input XML for " + sTableName + ": " + strInputXml);
+
+                // Execute insert
+                String strOutputXml = WFNGExecute(strInputXml, wrapperIP, wrapperPort, 0);
+
+                DigitalAO.mLogger.debug("APInsert Output XML for " + sTableName + ": " + strOutputXml);
+
+                // Extract APInsert return code
+                String mainCode = getTagValue(strOutputXml, "APInsert_Output", "MainCode");
+
+                DigitalAO.mLogger.debug("APInsert MainCode: " + mainCode);
+
+                if ("0".equalsIgnoreCase(mainCode)) {
+                    retVal = "true";
+                }
+
+            } catch (Exception ex) {
+                DigitalAO.mLogger.debug("Exception during APInsert for NG_DAO_ACCOUNT_SUMMARY: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+
+            return retVal;
+        }
+        public String getTagValue(Node node, String tag) {
+			NodeList nodeList = node.getChildNodes();
+			int length = nodeList.getLength();
+	
+			for (int i = 0; i < length; ++i) {
+				Node child = nodeList.item(i);
+	
+				if (child.getNodeType() == Node.ELEMENT_NODE && child.getNodeName().equalsIgnoreCase(tag)) {
+					return child.getTextContent();
+				}
+			}
+			return "";
+		}
+        
+        public static String getTagValue(String parseXml, String tagName, String subTagName)
+	      {
+	        
+	        String[] valueArr = null;
+	        String mainCodeValue = "";
+
+
+	        try
+	          {
+	            Map<Integer, String> tagValuesMap = new LinkedHashMap<Integer, String>();
+	            tagValuesMap = getTagDataParent(parseXml, tagName, subTagName);
+
+	            Map<Integer, String> map = tagValuesMap;
+	            for (Map.Entry<Integer, String> entry : map.entrySet())
+	              {
+	                valueArr = entry.getValue().split("~");
+	                //WriteLog( "tag values" + entry.getValue());
+	                mainCodeValue = valueArr[1];
+	                //WriteLog( "mainCodeValue" + mainCodeValue);
+	              }
+	          }
+	        catch (Exception e)
+	          {
+	            DigitalAO.mLogger.debug("Exception occured getTagValue: " + e.getMessage());
+	            e.printStackTrace();
+	          }
+	        return mainCodeValue;
+	      }
+        public static Map<Integer, String> getTagDataParent(String parseXml, String tagName, String subTagName)
+	      {
+	        Map<Integer, String> tagValuesMap = new LinkedHashMap<Integer, String>();
+	        InputStream is = new ByteArrayInputStream(parseXml.getBytes());
+	        try
+	          {
+	            
+	            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+	            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+	            Document doc = dBuilder.parse(is);
+	            doc.getDocumentElement().normalize();
+
+	            NodeList nList = doc.getElementsByTagName(tagName);
+
+	            String[] values = subTagName.split(",");
+	            String value = "";
+	            String subTagDerivedvalue = "";
+	            for (int temp = 0; temp < nList.getLength(); temp++)
+	              {
+	                Node nNode = nList.item(temp);
+	                if (nNode.getNodeType() == Node.ELEMENT_NODE)
+	                  {
+	                    Element eElement = (Element) nNode;
+	                    Node uNode = eElement.getParentNode();
+
+	                    for (int j = 0; j < values.length; j++)
+	                      {
+	                        if (eElement.getElementsByTagName(values[j]).item(0) != null)
+	                          {
+	                            value = value + "," + eElement.getElementsByTagName(values[j]).item(0).getTextContent();
+	                            subTagDerivedvalue = subTagDerivedvalue + "," + values[j];
+	                          }
+
+	                      }
+	                    value = value.substring(1, value.length());
+	                    subTagDerivedvalue = subTagDerivedvalue.substring(1, subTagDerivedvalue.length());
+
+	                    Node nNode_c = doc.getElementsByTagName(uNode.getNodeName()).item(temp);
+	                    Element eElement_agg = (Element) nNode_c;
+	                    String id_val = "";
+	                    if (uNode.getNodeName().equalsIgnoreCase("LoanDetails"))
+	                      {
+	                        id_val = eElement_agg.getElementsByTagName("AgreementId").item(0).getTextContent();
+	                      }
+	                    else if (uNode.getNodeName().equalsIgnoreCase("CardDetails"))
+	                      {
+	                        id_val = eElement_agg.getElementsByTagName("CardEmbossNum").item(0).getTextContent();
+	                      }
+	                    else if (uNode.getNodeName().equalsIgnoreCase("AcctDetails"))
+	                      {
+	                        id_val = eElement_agg.getElementsByTagName("AcctId").item(0).getTextContent();
+	                      }
+	                    else
+	                      {
+	                        id_val = "";
+	                      }
+
+	                    tagValuesMap.put(temp + 1, subTagDerivedvalue + "~" + value + "~" + uNode.getNodeName() + "~" + id_val);
+	                    value = "";
+	                    subTagDerivedvalue = "";
+	                  }
+	              }
+
+	          }
+	        catch (Exception e)
+	          {
+	            DigitalAO.mLogger.debug("Exception occured in getTagDataParent" + e.getMessage());
+	            e.printStackTrace();
+	            //WriteLog("Exception occured in getTagDataParent method:  "+e.getMessage());
+	          }
+	        finally
+	          {
+	            try
+	              {
+	                if (is != null)
+	                  {
+	                    is.close();
+	                    is = null;
+	                  }
+	              }
+	            catch (Exception e)
+	              {
+	                DigitalAO.mLogger.debug("Exception occured in is close:  " + e.getMessage());
+	              }
+	          }
+	        return tagValuesMap;
+	      }
+
+
+    }
+
