@@ -1,0 +1,164 @@
+--------------------------------
+1. MANDATORY FIELDS
+--------------------------------
+CUSTOMER_NAME
+CIF
+DSA_ID
+LOAN_AMOUNT
+REQUEST_FOR
+ACCOUNT_NUMBER
+APPLICATION_DATE
+ISLAMIC_OR_CONVENTIONAL
+CASE_TYPE
+HOME_IN_ONE
+EMPLOYMENT_TYPE
+SZHP
+SourceChannel
+SM
+Mobile_No
+Email_ID
+DOB
+LeadSourceChannels
+Nationality
+PBD_ELITE
+EtbNtb
+Gender
+
+ 
+
+
+--------------------------------
+2. OPTIONAL FIELDS
+--------------------------------
+AGREEMENT_NUMBER
+LAF
+EMPLOYER_NAME
+RESIDUAL_FINANCE
+PREAPPROVED_CARD
+PREAPPROVED_PL
+CUSTOMERTYPE
+IPACONVERSION
+SourceChannel
+SM
+JointApplicantCIF
+ValuatorName
+Place_of_Issue
+
+ 
+
+
+--------------------------------
+3. DOCUMENT CATEGORIES
+--------------------------------
+Application Form
+Bank Documents
+Bank Statements
+Company Documents
+Credit Documents
+Customer Documents
+Developer Documents
+Emails And Approvals
+Other Documents
+Seller Documents
+Undertaking Or Authorization
+RO Email Response
+ML Application Form
+Bank Statement
+Company Document
+Final Offer Letter
+KFS
+Service and Price Guide
+Terms and Conditions
+Indicative Payment Schedule
+Insurance Checklist
+Processing Fee
+Refinance Undertaking
+Loan Shield Form
+Security Cheque
+Life Insurance Certificate
+Property Insurance Certificate
+Assessment and Suitability ML
+Welcome Letter ML
+Final Repayment Schedule ML
+Final Offer Letter Signed
+Final Repayment Schedule HIO
+FaceSheet
+
+--------------------------------
+4. MANDATORY DOCUMENTS
+--------------------------------
+ML Application Form
+KFS
+Indicative Payment Schedule
+
+-----------------------------------------------------
+Facesheet optional fields 
+-------------------------------------------
+
+MORTAGE_LIMIT_APP_NO
+CreatedDATE
+ReferBy
+ProductType
+TestProgram
+CIF
+BORROWER_TYPE
+SOURCED_BY
+BORROWER_DETAILS_1
+BORROWER_DETAILS_2
+APPLICANT_Name_1
+APPLICANT_Name_2
+EMPLOYER_NAME_OF_BUSINESS_1
+EMPLOYER_NAME_OF_BUSINESS_2
+NATURE_OF_BUSINESS_1
+NATURE_OF_BUSINESS_2
+POSITION_1
+POSITION_2
+LENGTH_OF_BUSINESS_1
+LENGTH_OF_BUSINESS_2
+SALARY_1
+SALARY_2
+NATIONALITY_1
+NATIONALITY_2
+PROPERTY_TYPE
+Limit_Type
+PROPERTY_ADDRESS
+PURPOSE
+MARKET_TYPE
+TENOR
+PROPERTY_STATUS
+INTEREST_RATE
+DEVELOPER_NAME
+FIXED_VARIABLE
+ORIGINAL_PURCHASE_PRICE
+RATE_AFTER_2nd_YEAR
+ACTUAL_PURCHASE_PRICE
+CORPORATE_OFFER
+OPEN_MARKET_VALUE
+LOAN_PROCESSING_FEE
+DOWN_PAYMENT
+INSTALLMENT_AMOUNT
+LOAN_TO_VALUE_RATIO
+DBR
+LIFE_INSURANCE_ASSIGNMENT
+RESIDUAL_FINANCE
+NUMBER_OF_PROPERTIES_REQ
+SELLER_HAS_BANK_ACCOUNT
+RENTAL_INCOME_ASSIGNMENT
+PURPOSE_OF_REFINANCE
+CREDIT_CARD_TYPE
+CREDIT_LIMIT
+REPAYMENT_TYPE
+REPAYMENT_ACCOUNT_NO
+TOTAL_EXISTING_FACILITIES
+AED
+DISPENSATION_SOUGHT
+GROUP_TOTAL
+DEVIATIONS
+DISBURSAL_DETAILS
+Additional_Remarks
+APPRAISED_BY
+RECOMMENDED_BY
+TM
+SM
+TMDate
+SMDate
