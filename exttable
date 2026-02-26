@@ -1,0 +1,124 @@
+table:USR_0_WSR_ATTRDETAILS
+columns
+ID
+PROCESSID
+ATTRIBUTENAME
+EXTERNALTABLECOLNAME
+TRANSACTIONTABLECOLNAME
+ISMANDATORY
+ISACTIVE
+ATTRIBUTE_FORMAT
+ATTRIBUTE_TYPE
+
+Table:RB_ML_EXTTABLE
+columns
+ITEMINDEX	nvarchar	no	200
+ITEMTYPE	nvarchar	no	4
+SOL_ID	nvarchar	no	200
+LoggedInUser	nvarchar	no	200
+CUSTOMER_NAME	nvarchar	no	200
+CIF	nvarchar	no	14
+DSA_ID	nvarchar	no	200
+LOAN_AMOUNT	nvarchar	no	48
+REQUEST_FOR	nvarchar	no	200
+MCQ_REQUIRED	nvarchar	no	20
+APPLICATION_DATE	datetime	no	8
+AGREEMENT_NUMBER	nvarchar	no	16
+ISLAMIC_OR_CONVENTIONAL	nvarchar	no	200
+CASE_TYPE	nvarchar	no	200
+HOME_IN_ONE	nvarchar	no	20
+ACCOUNT_NUMBER	nvarchar	no	200
+EMPLOYMENT_TYPE	nvarchar	no	200
+APPOINTMENT_TYPE	nvarchar	no	200
+DECISION	nvarchar	no	200
+REMARKS	nvarchar	no	8000
+HOLD_TILL_DATE	datetime	no	8
+PREV_WS_DECISION	nvarchar	no	200
+CURRENT_WS	nvarchar	no	400
+PREV_WS	nvarchar	no	400
+ENTRYAT	datetime	no	8
+WINAME	nvarchar	no	400
+CREATED_AT	datetime	no	8
+CREATED_BY_USER	nvarchar	no	200
+isDistributed	nvarchar	no	40
+ISDEFERRALHELD	nvarchar	no	100
+IPA_ISSUE_DATE	datetime	no	8
+CREDIT_APPROVAL_FOR	nvarchar	no	200
+PREV_WS_CROPS_DEF_CHECKER	nvarchar	no	100
+PREV_WS_DEC_CROPS_DEF_CHECKER	nvarchar	no	100
+DEC_CREDIT	nvarchar	no	200
+DEC_CPV	nvarchar	no	200
+DEC_SALES_ATTACH_DOC1	nvarchar	no	200
+DIFF_IPA_CURRENT_DATE	smallint	no	2
+DEC_CROPS_DEFER_CHECKER	nvarchar	no	200
+LAF	nvarchar	no	100
+HIDDEN_IPA_ISSUE_DATE	nvarchar	no	100
+IS_DEFERRALS_ENTERED	nvarchar	no	20
+PREV_WS_DEC_SALES_DEF_MAK	nvarchar	no	100
+PREV_WS_SALES_DEF_MAK	nvarchar	no	100
+EMPLOYER_NAME	nvarchar	no	400
+RESIDUAL_FINANCE	nvarchar	no	200
+PREAPPROVED_CARD	nvarchar	no	200
+PREAPPROVED_PL	nvarchar	no	200
+ISREJECTED	nvarchar	no	20
+CUSTOMERTYPE	nvarchar	no	100
+IPACONVERSION	nvarchar	no	100
+CREDITSUBMITTEDBY	nvarchar	no	100
+ARCHIVALPATHSUCCESS	nvarchar	no	510
+ARCHIVALPATHREJECT	nvarchar	no	510
+DecAddInfoReqTakenAtQ	nvarchar	no	200
+SourceChannel	nvarchar	no	200
+SM	nvarchar	no	200
+JointApplicantCIF	nvarchar	no	14
+CPF_ManDOC_Flag	nvarchar	no	40
+BPM_ManDOC_Flag	nvarchar	no	40
+Cooling_Period_Waived_Off	nvarchar	no	40
+Waiting_for_Customer	nvarchar	no	40
+Final_Offer_Letter_Signed_Date	nvarchar	no	40
+Reject_Reason_for_Customer_Communication	nvarchar	no	200
+Email_ID	nvarchar	no	100
+Mobile_No	nvarchar	no	26
+DOB	nvarchar	no	40
+Final_Offer_Letter_Signed	nvarchar	no	40
+childcount	smallint	no	2
+Child_count	smallint	no	2
+DecisionChild	nvarchar	no	100
+CoolingPeriod_Flag	nvarchar	no	40
+CPF_ManDoc_Disbursal	nvarchar	no	40
+Manual_WI_Update_Decision	nvarchar	no	100
+InitiatorReject_PreWS	nvarchar	no	100
+Child_PreWS	nvarchar	no	100
+Child_CurrWS	nvarchar	no	100
+CPF_Missing_Doc	nvarchar	no	100
+WiUpdateStatus	nvarchar	no	400
+Date_And_Time	nvarchar	no	200
+Cooling_Period	nvarchar	no	40
+CoolingPeriodFlag_SalesAttach	nvarchar	no	40
+FOL_Flag	nvarchar	no	40
+Child_count_del	smallint	no	2
+PreWS_DecisionChild	nvarchar	no	100
+Delay_comm	nvarchar	no	40
+Place_of_Issue	nvarchar	no	100
+PendingComm_Flag	nvarchar	no	100
+Delay_comm_logi_1	nvarchar	no	20
+Tat_flag	nvarchar	no	20
+Decline_flag	nvarchar	no	20
+Count_App	numeric	no	9
+Count_Post_App	numeric	no	9
+Count_Pending	numeric	no	9
+DelayNotify	int	no	4
+LastReminderDate	datetime	no	8
+ReminderStageLevel	numeric	no	5
+NotifyStageLevel	numeric	no	9
+RejectReason_Flag	nvarchar	no	200
+CreditOfficerId	nvarchar	no	100
+CreditOfficerName	nvarchar	no	100
+LeadSourceChannels	nvarchar	no	510
+Nationality	nvarchar	no	200
+Gender	nvarchar	no	100
+EtbNtb	nvarchar	no	100
+ValuatorName	nvarchar	no	300
+PBD_ELITE	nvarchar	no	200
+DelayRetryCount	smallint	no	2
+PendingRetryCount	smallint	no	2
+ErrorWS_thresholdCount	smallint	no	2
