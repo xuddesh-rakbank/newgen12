@@ -1,0 +1,10 @@
+[06 Mar 2026 07:42:10,060] - 
+ [Uddeshya] <?xml version="1.0"?><WMAssignWorkItemAttributes_Input><Option>WMAssignWorkItemAttributes</Option><EngineName>rakcas</EngineName><SessionId>4202851</SessionId><ProcessInstanceId>DigitalAO-0000020419-process</ProcessInstanceId><WorkItemId>1</WorkItemId><ActivityId>8</ActivityId><ProcessDefId>44</ProcessDefId><LastModifiedTime></LastModifiedTime><ActivityType>10</ActivityType><WebServerAddress>https://10.15.12.163:9443</WebServerAddress><OAPWebServerAddress>https://10.15.12.163:9443</OAPWebServerAddress><UserDefVarFlag>Y</UserDefVarFlag><Attributes><arabic_test>وداعاً</arabic_test></Attributes><IsDeleteInsertFlag>N</IsDeleteInsertFlag></WMAssignWorkItemAttributes_Input>
+[06 Mar 2026 07:42:10,060] - 
+ [Uddeshya]  <?xml version="1.0"?>
+<WFSetAttributes_Output>
+<Option>WFSetAttributes</Option>
+<Exception>
+<MainCode>0</MainCode>
+</Exception>
+</WFSetAttributes_Output>
