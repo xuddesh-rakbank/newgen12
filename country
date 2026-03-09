@@ -1,3 +1,5 @@
+User is not able to add country if the Countries with which business conducted is empty
+
 case 'Add_Country_click':
 			var country_code = getValue("Country_List");
 			if(country_code=="")
