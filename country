@@ -1,0 +1,44 @@
+case 'Add_Country_click':
+			var country_code = getValue("Country_List");
+			if(country_code=="")
+			{
+				alert("Empty value passed!")
+				break;
+			}
+			
+			if(getValue("countryDealingWith")=="")
+			{
+				alert("Countries with which business conducted can't be left blank")
+				break;
+			}
+			// Prevent duplicates ADO --641958 //uddeshya
+			if (getValue("countryDealingWith").split(',').includes(country_code))
+				{
+				alert("You have already selected this country.");
+				break;
+				}
+			
+			var existing = getValue("countryDealingWith");
+			// Prevent more than 5 countries
+			if (existing !== "" && existing.split(',').length >= 5)
+				{
+				alert("Maximum limit reached. You can select only up to 5 countries.");
+				break;
+				}	
+
+
+			if(getValue("countryDealingWith")=="")
+			{
+				setControlValue("countryDealingWith",country_code);
+				
+				var response = executeServerEvent("risk_score_change","change","",true);
+				return response;
+			}
+			else
+			{	var next_val = getValue("countryDealingWith")+","+getValue("Country_List");
+				setControlValue("countryDealingWith",next_val);
+				
+				var response = executeServerEvent("risk_score_change","change","",true);
+				return response;
+			}
+			break;
