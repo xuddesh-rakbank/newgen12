@@ -1,0 +1,30 @@
+IBPS shall prompt Ops user(Operations) to Trigger Risk Score in below scenarios:
+Ops(Operations) amended details in IBPS (applicable both for new and pipeline cases)
+Dedupe Match Case where Existing CIF is identified
+
+IBPS shall trigger APIS as per below scenarios:
+Ops selected existing CIF for Dedupe Match customers:
+IBPS shall trigger Customer details API to get CIF creation date & DOB for UAE Nationals.
+IBPS shall trigger Account Summary API to get list of products & currency held by the customer.
+IBPS shall trigger Risk Score API.
+
+Ops amended details in IBPS for ETB customers:
+IBPS shall trigger Account Summary API to get list of products & currency held by the customer.
+IBPS shall trigger Risk Score API.
+
+Ops amended details in IBPS for NTB customers:
+IBPS shall trigger Risk Score API.
+Pipeline Cases, ETB customer:
+IBPS shall prompt Ops user to select valid PEP value, Length of Residency & Industry Sub Industry (for Salaried Customers).
+IBPS shall trigger Customer details API to get CIF creation date & DOB for UAE Nationals.
+IBPS shall trigger Account Summary API to get list of products & currency held by the customer.
+IBPS shall trigger Risk Score API
+
+Pipeline cases, NTB customer:
+IBPS shall prompt Ops user to select valid PEP value, Length of Residency & Industry Sub Industry (for Salaried Customers).
+IBPS shall trigger Risk Score API.
+Regression for Additional Account Check from IBPS:
+IBPS shall continue to restrict customer's from getting Additional Current/ Savings account based on Account Summary API response.
+
+
+want pep value in riskcaluclation request from ifrom
