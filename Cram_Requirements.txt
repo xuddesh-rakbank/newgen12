@@ -1,0 +1,150 @@
+
+
+CRAM INTEGRATION REQUIREMENTS
+
+Country of Birth
+product
+currency
+
+serviceId : Default value "CRAM_DecisionEngine_V1" to be sent to CRAM in request.
+serviceType : Default value "DecisionEngineCRAM" to be sent to CRAM in request.
+serviceChannelId : Default value "EBC.WBA" to be sent to CRAM in request
+timeStamp : Current Date and time to be sent in request in MM/DD/YYYY HH:MM
+journey : Default value "DAO" to be sent to CRAM in request
+custType : Default value "Individual" to be sent to CRAM in request
+
+
+type : 
+For NTB customers, value "NTB" to be sent to CRAM in request
+For dedupe multi match, value "NTB" to be sent to CRAM in request.
+For ETB customers, value "ETB" to be sent to CRAM in request
+
+custIdType : 
+For NTB customers, value "EMID" to be sent to CRAM in request  
+For dedupe multi match, value "EMID" to be sent to CRAM in request
+For ETB customers, value "CIF" to be sent to CRAM in request
+
+custIdValue : 
+For NTB customers, "<EMID number>" to be sent to CRAM in request
+For dedupe multi match, "<EMID number>" to be sent to CRAM in request
+For ETB customers, "< CIF ID number>"" to be sent to CRAM in request
+
+CustomerName : 
+Final derived or user input customer Full name to be sent to CRAM in request for all customers.
+CRAM accepts customer full name upto 300-character length.
+
+
+Nationality: 
+
+Nationality as received from EFR and Dual nationality as declared by customer to be sent to CRAM in request.
+Two-digit ISO code to be sent in request.
+Multiple country codes will be sent with comma separated.
+Only unique values should be sent to CRAM
+
+Demography: 
+Counties declared by customers in <Money send and received from, Business conducted with countries> fields to be sent to CRAM in request.
+Two-digit ISO code to be sent in request.
+Multiple country codes will be sent with comma separated.
+Unique country codes to be sent in request.
+
+Country of Birth:
+Two-digit ISO code to be sent in request.
+Money Send and Received from, Business Conducted with are editable in IBPS, if Ops edit any country, revised list of countries shall be passed to CRAM for Risk Recalculation.
+
+
+1.For salaried customers, value "Employed - Resident" will be sent in CRAM request.
+2.For self employed customers, value "Self Employed - Resident" will be sent in CRAM request.
+3.For ruling family members, value "Ruling Family" will be sent in CRAM request
+
+
+687646: IBPS Behavior Post Successful CRAM API Response
+CRAM API Call - IBPS Changes
+IBPS shall prompt Ops users to retrigger Risk Recalculation, if any amendment is made to the WI.
+IBPS shall trigger the Risk Call to CRAM and wait for valid response.
+If the call the fails, Ops user shall be shown error message.
+Ops shall not be able to proceed with the application, unless the Risk calculation is successful.
+IBPS shall be able to update customer Risk Score & Risk Flag based on response received.
+IBPS shall update the Risk Score sheet as well & maintain the versions. (Existing Process)
+
+
+
+627312:Field- HNWI & AnnualTurnoverExpected for Risk Rescoring (IBPS)
+Field- HNWI for Risk Rescoring (IBPS)
+HNWI:
+IBPS to calculate & send sum of Source of wealth for customers where it is captured from the journey.
+If Ops updates the Source of Wealth for the customer, IBPS shall prompt Ops user for Risk Recalculation.
+AnnualTurnoverExpected
+IBPS to calculate & send AnnualTurnoverExpected  as Customer Monthly Income * 12 for both Salaried and Self employed customers.
+
+
+
+626195:-PEP Values Classification - IBPS Change
+
+For CRAM API Integration, IBPS to maintain LOVs for PEP values.
+maintained under pepValue:--LPEP, FPEP, NPEP, APEP, HIO
+
+Ops shall be able to select from below values:
+  LPEP: If PEP is Y and nationality is UAE
+  FPEP: If PEP is Y and nationality is other than UAE
+  NPEP: If customer is not a PEP
+  APEP: If customer selected PEP as Association
+ HIO: If customer is a Head of International Organization
+
+IBPS shall pass selected value as part of Risk Recalculation.
+
+For Pipeline cases, if Ops takes decision as approve for a WI where the PEP value was marked with Yes or No. IBPS shall prompt OPs user to select valid value from the dropdown and Re-Trigger Risk Score.
+
+625112:field maturity of relationship
+
+Field - MaturityRelationship for Risk Rescoring (IBPS)
+
+IBPS to fetch CIF creation date for Dedupe case (where CIF is identified by Ops), before triggering the risk score.
+IBPS shall pass the CIF creation date as received from API response in MaturityRelationship tag.
+For ETB cases, IBPS shall pass CIF creation date as received from DEH.
+For NTB customers IBPS shall pass current system date while Risk Recalculation.
+Customer Details API shall be triggered only for Dedupe Match case where Existing CIF is identified.
+
+
+625104: CRAM API Request - IBPS Changes
+iBPS Changes for CRAM Integration
+
+When Ops Edit any of the editable fields in IBPS, Risk Calculation shall be prompted to the Ops user.
+IBPS shall be able to send below values to CRAM for Risk Calculation:
+Field name	Data Type	Length	LoV reference	Type	Mandatory/ optional	 Segregation for corporate/individual
+serviceId	String	30	NA	Single Value	Mandatory	Corporate & Individual
+serviceType	String	30	NA	Single Value	Mandatory	Corporate & Individual
+serviceChannelId	String	20	NA	Single Value	Mandatory	Corporate & Individual
+requestId	String	30	NA	Single Value	Mandatory	Corporate & Individual
+timeStamp	Date and Time	NA	NA	Single Value	Mandatory	Corporate & Individual
+Journey	String	20	NA	Single Value	Mandatory	Corporate & Individual
+custType	String	20	NA	Single Value	Mandatory	Corporate & Individual
+type	String	10	NA	Single Value	Mandatory	Corporate & Individual
+custIdType	String	20	NA	Single Value	Mandatory	Corporate & Individual
+custIdValue	String	50	NA	Single Value	Mandatory	Corporate & Individual
+CustomerName	String	200	NA	Single Value	Mandatory	 Corporate & Individual
+Nationality	String	10	Annex 2	List of Values (Multi-rec)	Mandatory	 Corporate & Individual
+Demography	String	10	Annex 3	List of Values (Multi-rec)	Mandatory	 Corporate & Individual
+LengthofResidency	String	10	Annex 9	Single Value	Mandatory	Individual
+Persona	String	10	Annex 1	Single Value	Mandatory	Corporate & Individual
+Industry	String	20	Annex 4	List of Values (multi-rec)	Mandatory	 Corporate & Individual
+pepStatus	String	10	Annex1	Single Value	Mandatory	 Corporate & Individual
+HNWI	Numeric	19,2	Annex 14	Single Value	Optional	Individual
+CashTurnoverPerc	Numeric	5,2	Annex 8	List of Values	Mandatory	 Corporate & Individual
+MaturityRelationship	Date	NA	Annex 11	Single Value	Mandatory	 Corporate & Individual
+LicensingAuthority	String	20	Annex 13	Single Value	Mandatory	Corporate
+Product	String	100	Annex 6	List of Values(Multi-rec)	Mandatory	 Corporate & Individual
+Currency	String	20	Annex 7	List of Values(Multi-rec)	Mandatory	 Corporate & Individual
+AdverseMediaResults	String	10	Annex 14	Single Value	Optional	 Corporate & Individual
+CountryofBirth	String	10	Annex 2	List of Values(Multi-rec)	Mandatory	 Corporate & Individual
+AnnualTurnoverExpected	Numeric	19,2	Annex 10	Single Value	Mandatory	 Corporate & Individual
+PersonalAccountsUtilizedForCommercialActivity	String	10	Annex 14	Single Value	Optional	Individual
+CustomerreportedtoRegulator	String	10	Annex 14	Single Value	Optional	 Corporate & Individual
+DeliveryChannel	String	10	Annex 5	Single Value	Mandatory	 Corporate & Individual
+lengthOfEstablishment	String	10	Annex 9	Single Value	Mandatory	Corporate
+layersInComplexOwnershipStructure	String	10	Annex 15	Single Value	Mandatory	Corporate
+nonResidentUBOorCustomer	String	10	Annex 14	Single Value	Mandatory	 Corporate & Individual
+CountryofEstablishment	String	10	Annex2	List of Values (Multi-rec)	Mandatory	Corporate
+HNWE	Numeric	19,2	Annex 14	Single Value	Mandatory 	Corporate
+User ID	String	25	NA	Single Value	Mandatory	 Corporate & Individual
+Business Segment	String	20	NA	Single Value	Optional	 Corporate & Individual
+Business Subsegment	String	20	NA	Single Value	Optional	 Corporate & Individual
