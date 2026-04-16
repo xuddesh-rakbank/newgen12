@@ -1,0 +1,9 @@
+ else if (controlName.equalsIgnoreCase("Risk_score_trigger")) 
+		{
+			DigitalAO.mLogger.debug("RISK_SCORE_DETAILS : Click: ");
+			String currDate = new SimpleDateFormat("dd/MM/YYYY").format(new Date());
+			DigitalAO.mLogger.debug("currDate KYC : " + currDate);
+			setControlValue("KYC_review_Date", currDate, iform);
+
+			return new DigitalAO_Integration().onclickevent(iform, controlName, data);
+		
