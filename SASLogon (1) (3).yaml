@@ -1,0 +1,149 @@
+openapi: 3.0.3
+info:
+  title: SAS Logon REST APIs
+  description: >
+    SAS Logon APIs provide OAuth client management and authentication capabilities for SAS Viya integrations including client creation, secret management, and token generation using client credentials.
+
+  version: 1.0.0
+servers:
+  - url: https://apiinternal-uat.rakbanktst.ae
+    description: uat environment internal gateway
+security:
+  - basicAuth: []
+paths:
+  /SASLogon/oauth/clients:
+    post:
+      summary: Create OAuth Client
+      description: Creates a new OAuth client in SAS Logon.
+      operationId: createClient
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/oauth_clients_body'
+        required: true
+      responses:
+        '201':
+          description: Client created successfully
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+  '/SASLogon/oauth/clients/{clientId}':
+    get:
+      summary: Get Client Details
+      description: Retrieve configuration details of a registered OAuth client.
+      operationId: getClient
+      parameters:
+        - name: clientId
+          in: path
+          description: OAuth client ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Client details retrieved successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Client not found
+  '/SASLogon/oauth/clients/{clientId}/secret':
+    put:
+      summary: Update Client Secret
+      description: Update or rotate the secret of an existing OAuth client.
+      operationId: updateSecret
+      parameters:
+        - name: clientId
+          in: path
+          description: OAuth client ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/clientId_secret_body'
+        required: true
+      responses:
+        '200':
+          description: Secret updated successfully
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+  /SASLogon/oauth/token:
+    post:
+      summary: Generate Access Token
+      description: Generate OAuth access token using client credentials.
+      operationId: grantClientCredentials
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/oauth_token_body'
+        required: true
+      responses:
+        '200':
+          description: Access token generated successfully
+        '400':
+          description: Invalid request
+        '401':
+          description: Authentication failed
+components:
+  schemas:
+    oauth_clients_body:
+      required:
+        - client_id
+        - client_secret
+      type: object
+      properties:
+        client_id:
+          type: string
+          description: Unique identifier of the OAuth client
+        client_secret:
+          type: string
+          description: Client secret
+        authorized_grant_types:
+          type: array
+          example:
+            - client_credentials
+          items:
+            type: string
+        authorities:
+          type: array
+          items:
+            type: string
+        scope:
+          type: array
+          items:
+            type: string
+    oauth_token_body:
+      required:
+        - client_id
+        - client_secret
+        - grant_type
+      type: object
+      properties:
+        grant_type:
+          type: string
+          example: client_credentials
+        client_id:
+          type: string
+        client_secret:
+          type: string
+        scope:
+          type: string
+    clientId_secret_body:
+      required:
+        - newSecret
+      type: object
+      properties:
+        newSecret:
+          type: string
+          description: New client secret
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic

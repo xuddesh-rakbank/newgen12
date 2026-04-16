@@ -1,0 +1,346 @@
+openapi: 3.0.3
+info:
+  title: CRAM Decision Engine API
+  description: >
+    API exposed from SAS Container Runtime (SCR) for executing the Customer Risk Assessment Model (CRAM) decision flow in real time.
+
+  version: 1.0.0
+servers:
+  - url: https://apiinternal-uat.rakbanktst.ae
+    description: uat environment internal gateway
+paths:
+  /viya-cram-0/rrc:
+    post:
+      summary: Execute CRAM Decision Engine
+      description: >
+        Executes the CRAM decision flow deployed in SAS Container Runtime and returns calculated risk scores and risk category.
+
+      operationId: executeCRAMDecision
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CRAMRequest'
+            example:
+              serviceId: CRAM_DecisionEngine_V1
+              serviceType: DecisionEngineCRAM
+              serviceChannelId: WBA
+              requestId: CRAM12345
+              timeStamp: '21/04/2025 6:23'
+              userId: Test14312
+              journey: DAO
+              businessSegment: PBD
+              businessSubsegment: PBN
+              custType: Individual
+              type: NTB
+              custIdType: CIF
+              custIdValue: '5000639'
+              customerName: Individual Name
+              nationality:
+                - AE
+                - SA
+              demographic:
+                - AE
+                - NR
+              lengthOfResidency: '5.09'
+              persona: CO
+              industry:
+                - GAA
+                - FAA
+              pepStatus: NPEP
+              hnwi: 123456.98
+              hnwe: 35645.99
+              cashTurnoverPerc:
+                - 50
+                - 32.5
+              maturityRelationship: 22-02-2026
+              licensingAuthority: Ras Al Khaimah Department of Economic Development
+              product:
+                - AA
+              currency:
+                - AED
+                - INR
+              adverseMediaResults: 'Y'
+              countryOfBirth:
+                - AE
+              annualTurnoverExpected: 12345.12
+              personalAccountsUtilizedForCommercialActivity: 'Y'
+              customerReportedToRegulator: 'Y'
+              deliveryChannel: FF
+              lengthOfEstablishment: '2.11'
+              countryOfEstablishment:
+                - AE
+              layersInComplexOwnershipStructure: '2'
+              nonResidentUboOrCustomer: 'Y'
+        required: true
+      responses:
+        '200':
+          description: Successful risk evaluation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CRAMResponse'
+        '400':
+          description: Invalid request payload
+        '500':
+          description: Internal server error
+components:
+  schemas:
+    CRAMRequest:
+      required:
+        - custType
+      type: object
+      properties:
+        serviceId:
+          type: string
+          example: CRAM_DecisionEngine_V1
+        serviceType:
+          type: string
+          example: DecisionEngineCRAM
+        serviceChannelId:
+          type: string
+          example: WBA
+        requestId:
+          type: string
+          example: CRAM12345
+        timeStamp:
+          type: string
+          example: '21/04/2025 6:23'
+        userId:
+          type: string
+          example: Test14312
+        journey:
+          type: string
+          example: DAO
+        businessSegment:
+          type: string
+          example: PBD
+        businessSubsegment:
+          type: string
+          example: PBN
+        custType:
+          type: string
+          example: Individual
+        type:
+          type: string
+          example: NTB
+        custIdType:
+          type: string
+          example: CIF
+        custIdValue:
+          type: string
+          example: '5000639'
+        customerName:
+          type: string
+          example: Individual Name
+        nationality:
+          type: array
+          items:
+            type: string
+          example:
+            - AE
+            - SA
+        demographic:
+          type: array
+          items:
+            type: string
+          example:
+            - AE
+            - NR
+        lengthOfResidency:
+          type: string
+          example: '5.09'
+        persona:
+          type: string
+          example: CO
+        industry:
+          type: array
+          items:
+            type: string
+          example:
+            - GAA
+            - FAA
+        pepStatus:
+          type: string
+          example: NPEP
+        hnwi:
+          type: number
+          example: 123456.98
+        hnwe:
+          type: number
+          example: 35645.99
+        cashTurnoverPerc:
+          type: array
+          items:
+            type: number
+          example:
+            - 50
+            - 32.5
+        maturityRelationship:
+          type: string
+          example: 22-02-2026
+        licensingAuthority:
+          type: string
+          example: Ras Al Khaimah Department of Economic Development
+        product:
+          type: array
+          items:
+            type: string
+          example:
+            - AA
+        currency:
+          type: array
+          items:
+            type: string
+          example:
+            - AED
+            - INR
+        adverseMediaResults:
+          type: string
+          example: 'Y'
+        countryOfBirth:
+          type: array
+          items:
+            type: string
+          example:
+            - AE
+        annualTurnoverExpected:
+          type: number
+          example: 12345.12
+        personalAccountsUtilizedForCommercialActivity:
+          type: string
+          example: 'Y'
+        customerReportedToRegulator:
+          type: string
+          example: 'Y'
+        deliveryChannel:
+          type: string
+          example: FF
+        lengthOfEstablishment:
+          type: string
+          example: '2.11'
+        countryOfEstablishment:
+          type: array
+          items:
+            type: string
+          example:
+            - AE
+        layersInComplexOwnershipStructure:
+          type: string
+          example: '2'
+        nonResidentUboOrCustomer:
+          type: string
+          example: 'Y'
+    CRAMResponse:
+      type: object
+      properties:
+        serviceId:
+          type: string
+          example: CRAM_DecisionEngine_V1
+        requestId:
+          type: string
+          example: CRAM12345
+        serviceChannelId:
+          type: string
+          example: WBA
+        timeStamp:
+          type: string
+          example: '21/04/2025 6:23'
+        journey:
+          type: string
+          example: DAO
+        custType:
+          type: string
+          example: Individual
+        type:
+          type: string
+          example: NTB
+        custIdType:
+          type: string
+          example: CIF
+        custIdValue:
+          type: string
+          example: '5000639'
+        totalRiskScore:
+          type: number
+          example: 4.05
+        riskCategory:
+          type: string
+          example: High Risk
+        overallRiskRating:
+          type: integer
+          example: 18
+        riskScoreInfo:
+          $ref: '#/components/schemas/CRAMResponse_riskScoreInfo'
+    CRAMResponse_riskScoreInfo:
+      type: object
+      properties:
+        nationality:
+          type: string
+          example: 'UNITED ARAB EMIRATES,SAUDI ARABIA'
+        demographic:
+          type: string
+          example: 'UNITED ARAB EMIRATES,NAURU'
+        industry:
+          type: string
+          example: 'A&A- FISHING HUNTING TRAPPING,A&A-CATTLE'
+        deliveryChannel:
+          type: string
+          example: FACE TO FACE
+        product:
+          type: string
+          example: BANCASSURANCE - INSURANCE
+        hnwi:
+          type: string
+          example: 'Yes'
+        hnwe:
+          type: string
+          example: 'No'
+        pepStatus:
+          type: string
+          example: NPEP
+        currency:
+          type: string
+          example: 'AED,INR'
+        cashTurnoverPerc:
+          type: string
+          example: 20 < Cash % < 50
+        maturityRelationship:
+          type: string
+          example: 2 < Maturity of Relationship < 5
+        lengthOfResidency:
+          type: string
+          example: 0 < Length of Residency < 2
+        persona:
+          type: string
+          example: CARD ONLY
+        licensingAuthority:
+          type: string
+          example: Ras Al Khaimah Department of Economic Development
+        adverseMediaResults:
+          type: string
+          example: 'No'
+        countryOfBirth:
+          type: string
+          example: UNITED ARAB EMIRATES
+        annualTurnoverExpected:
+          type: string
+          example: 2 < Turnover < 5
+        personalAccountsUtilizedForCommercialActivity:
+          type: string
+          example: 'Yes'
+        customerreportedtoRegulator:
+          type: string
+          example: 'Yes'
+        lengthOfEstablishment:
+          type: string
+          example: 0 < Length of Establishment < 2
+        countryOfEstablishment:
+          type: string
+          example: UNITED ARAB EMIRATES
+        layersInComplexOwnershipStructure:
+          type: string
+          example: '>=3'
+        nonResidentUboOrCustomer:
+          type: string
+          example: 'Yes'
