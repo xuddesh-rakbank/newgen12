@@ -1,3 +1,11 @@
+if ("No".equalsIgnoreCase(pepStatus)) {
+    pepVal = "NPEP";
+}
+
+CheckGridDataMap.put("PEP_Status", pepStatus);
+CheckGridDataMap.put("pepValue", pepVal);
+
+
 /*
 ---------------------------------------------------------------------------------------------------------
                   NEWGEN SOFTWARE TECHNOLOGIES LIMITED
