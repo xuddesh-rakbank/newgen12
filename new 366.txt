@@ -1,9 +1,8 @@
-if ("No".equalsIgnoreCase(pepStatus)) {
-    pepVal = "NPEP";
-}
-
-CheckGridDataMap.put("PEP_Status", pepStatus);
-CheckGridDataMap.put("pepValue", pepVal);
+623313             Prod Issue - Ops users are able to enter special characters in remarks field 
+625471             Delivery Process Changes for Member of Ruling Family
+642556             Company Details UI fixes
+671901             Consolidated Report to Include Emirates for Member of Ruling Family
+646296             Courier Re-Dispatch of Member of Ruling Family WIs
 
 
 /*
