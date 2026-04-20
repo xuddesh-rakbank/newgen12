@@ -160,7 +160,634 @@ if (op === "D") { // Done click
         return false;
     }
 }
+///////////////ttttttttttttttttttttttttt
+var DAO_Common = document.createElement('script');
+DAO_Common.src = '/DAO/DAO/CustomJS/DAO_Common.js';
+document.head.appendChild(DAO_Common);
 
+var DAO_onLoad = document.createElement('script');
+DAO_onLoad.src = '/DAO/DAO/CustomJS/DAO_onLoad.js';
+document.head.appendChild(DAO_onLoad);
+	
+var DAO_onSaveDone = document.createElement('script');
+DAO_onSaveDone.src = '/DAO/DAO/CustomJS/DAO_onSaveDone.js';
+document.head.appendChild(DAO_onSaveDone);
+	
+var DAO_mandatory = document.createElement('script');
+DAO_mandatory.src = '/DAO/DAO/CustomJS/DAO_MandatoryFieldValidations.js';
+document.head.appendChild(DAO_mandatory);
+
+var DAO_EventHandler = document.createElement('script');
+DAO_EventHandler.src = '/DAO/DAO/CustomJS/DAO_EventHandler.js';
+document.head.appendChild(DAO_EventHandler);
+
+var signuploadFlag='false';
+
+
+function setCommonVariables()
+{
+	Processname = getWorkItemData("ProcessName");
+	ActivityName =getWorkItemData("ActivityName");
+	WorkitemNo =getWorkItemData("processinstanceid");
+	cabName =getWorkItemData("cabinetname");
+	user= getWorkItemData("username");	
+	setControlValue("log_in_as",user);
+	viewMode=window.parent.wiViewMode;
+}
+
+function afterFormload()
+{
+	setCommonVariables();
+	disable_form_load();
+	populateDecisionDropDown();
+	populateCIF();
+	populateAccountpurpose();
+	popup_onload();
+	
+	if(ActivityName=='sign_upload_checker' && getValue("prevws")=='Manual_Archive'){
+		setStyle("CIF_Update", "disable", "true");
+		setStyle("sign_upload", "disable", "true");
+	}
+	
+	if ( ActivityName == "operations"){
+		var rowCount = getGridRowCount("Gr_Money_Sent_And_Received_Country");
+		if(rowCount==0){
+		 var  result= executeServerEvent("Money_send_and_received_country","FormLoad","",true);
+		}
+		saveWorkItem();
+		
+		var rowCount = getGridRowCount("Q_gr_professional_history");
+		if(rowCount==0){
+		 var  result= executeServerEvent("Professional_history","FormLoad","",true);
+		}
+		saveWorkItem();
+	
+		var highRisk =getValue("high_risk");
+		if(highRisk=='Y'){				
+			var rowCount = getGridRowCount("address_detail");				
+			for(var i =0;i<rowCount;i++){					
+				var add_type=getValueFromTableCell("address_detail",i,7);	
+				if(add_type=='RESIDENCE'){
+					setRowsDisabled("address_detail",[i],true);
+					}
+				}		
+			} 
+	}
+	
+	if(ActivityName == "sign_upload_maker"){
+		var rowCount = getGridRowCount("Gr_Money_Sent_And_Received_Country");
+		if(rowCount==0){
+		 var  result= executeServerEvent("Money_send_and_received_country","FormLoad","",true);
+		}
+		saveWorkItem();
+		
+		var rowCount = getGridRowCount("Q_gr_professional_history");
+		if(rowCount==0){
+		 var  result= executeServerEvent("Professional_history","FormLoad","",true);
+		}
+		saveWorkItem();
+	}
+	
+	if (ActivityName == "sign_upload_maker" || ActivityName == "operations" || ActivityName == "compliance" || ActivityName == "Ops_Account_Closure_Maker"){
+		if(getValue("is_kyc_report_onload") != "true")
+		{
+			template_generate_kyc();
+		}
+		if(getValue("is_risk_score_report_onload") != "true")
+		{
+			template_generate_risk_sheet();
+		}
+		if(getValue("is_firco_report_onload") != "true")
+		{
+			template_generate_firco();
+		}
+		if(getValue("is_dedupe_onload") != "true")
+		{
+			template_dedupe();
+		}
+		saveWorkItem()
+	}
+
+	if(viewMode =='R')
+	{
+		setStyle("Remarks_dec", "disable", "false");
+		setStyle("rejectReason", "disable", "false");
+		clearValue("Remarks_dec");
+		clearValue("rejectReason");
+		setStyle("Remarks_dec", "disable", "true");
+		setStyle("rejectReason", "disable", "true");
+		var section_onLoad_Readmode = executeServerEvent("section_onLoad_Readmode","FormLoad","",true);
+		return section_onLoad_Readmode;
+	}
+	if(viewMode !='R')
+	{
+		setStyle("reject_reason", "disable", "false");
+		clearValue("rejectReason");
+		setStyle("reject_reason", "disable", "true");
+		setControlValue('Remarks_dec','')
+		saveWorkItem();
+	}
+} 
+
+function customValidationsBeforeSaveDone(op)
+{
+	if(op=="S")
+	{
+		if(saveClickOperation()==false)
+		{
+			return false;
+		}
+		return true;
+	}
+	else if (op=="I" || op=="D")
+	{
+		if(mandatoryFieldValidation(ActivityName)==false)
+		{
+			return false;
+		}
+		
+		if(ActivityName=='operations' && getValue('Dedupe_Match_found')=='Y' && (getValue('CIF')=="" || 
+		getValue('CIF')==null) && getValue("Decision")=='Approve')
+		{
+			showMessage("CIF","Please select CIF from the dropdown.","error");
+			setFocus("CIF");
+			return false;
+		}
+		if (validateAccountSummaryBeforeProceed() === false)
+		{
+			return false;
+		}
+		
+		if(ActivityName=='sign_upload_maker' && ((getValue("is_prime_req")=='Y')))
+		{
+			var resp = Documentlistvalidation();
+			if(resp==false)
+			{
+				return false;
+			}
+		}
+		
+		if(ActivityName=='Ops_Account_Closure_Maker' && getValue("Card_closed")!= true  && ((getValue("is_prime_req")=='Y' && getValue("Decision")=='Submit')))
+		{
+			showMessage("Card_closed","Please tick card destroyed checkbox","error");
+			setFocus("Card_closed");
+			return false;
+		}
+		
+		if(ActivityName=='Ops_Account_Closure_Maker' && getValue("ChequeBk_destroy")!= true && ((getValue("is_cbs_req")=='Y' && getValue("Decision")=='Submit')))
+		{
+			showMessage("ChequeBk_destroy","Please tick Chequebook Destroyed checkbox","error");
+			setFocus("ChequeBk_destroy");
+			return false;
+		}	
+		
+		if(ActivityName=='Ops_Account_Closure_Maker'  && getValue("Decision")=='Redispatch')
+		{
+			var documentAvail = window.parent.getInterfaceData('D');
+			var flag ='Notfound'
+			for (var i =0;i<documentAvail.length;i++){		
+				var docname=documentAvail[i].name;
+				if(docname=='Emails And Approvals'){
+					flag='found';
+					break;
+				}
+			}
+			if(flag=='Notfound'){
+				showMessage("","Please attach Emails And Approvals!","error");
+				setControlValue("Decision","");
+				return false;
+			}
+		}
+		
+		if(signuploadFlag=='false' && ActivityName=='sign_upload_checker' && getValue("Decision")=='Approve' && getValue("prevws")!='Manual_Archive'){
+			showMessage("sign_upload_click","Please upload Signature!!","error");
+			setFocus("sign_upload_click");
+			return false;
+		}
+		
+		/* PRODUCTION-READY CRAM GUARD */
+		if (op === "D") { 
+			var riskScore = getValue("risk_score");
+			if (riskScore === "" || riskScore == null) {
+				showMessage("Generate_RiskScore", "Risk Score Calculation is mandatory before submission.", "error");
+				return false;
+			}
+		}
+		
+		if((getValue("Decision")=="Refer to compliance" || getValue("Decision")=="Refer to compliane WC" || getValue("Decision")=="Refer to operations" || getValue("Decision")=="send to compliance WC" || getValue("Decision")=="send to compliance" || getValue("Decision")=="send to operations") && (getValue("Remarks_dec")=="" || getValue("Remarks_dec")==null))
+		{
+			setStyle("Remarks_dec", "mandatory", "true");
+			showMessage("Remarks_dec","Remarks are mandatory!!","error");
+			return false;
+		}
+		
+		if(ActivityName=='operations' && getValue("NSTP_employer")=='Y' && (getValue("Company_employer_name")=="" || getValue("Company_employer_name")==null))
+		{
+			showMessage("Company_employer_name","Employer Name Can Not be Blank.Please Select the Employer Name","error");		setFocus("Company_employer_name");
+			return false;
+		}
+		
+		if(ActivityName=='Additional_cust_details' && (getValue('Decision')=="" || getValue('Decision')==null))
+		{
+			showMessage("","Please select Decision from the dropdown.","error");
+			return false;
+		}
+		else if(ActivityName=='Additional_cust_details' && !(getValue('Decision')=='' || getValue('Decision')==null))
+		{
+			var Decision_value=getValue("Decision");
+			setControlValue("Decision",Decision_value);			
+		}
+
+		var confirmDoneResponse = confirm("You are about to submit the workitem. Do you wish to continue?");
+		
+		if(confirmDoneResponse ==  true)
+		{		
+			AddnalDocsReqd_flag();
+			
+			if(getValue("Decision")=="Approve" && ActivityName=='operations' && (getValue("Given_Name")!=getValue("DEH_FirstName") || getValue("Middle_Name")!=getValue("DEH_middleName") || getValue("Surname")!=getValue("DEH_LastName"))){
+				setControlValue("UpdProspectReqd","True");
+				if(getValue("User_Edit_name")=='' || getValue("User_Edit_name")=='name')
+				{
+					setControlValue("User_Edit_name","name")
+				}
+				else{
+					setControlValue("User_Edit_name","both")
+				}
+				saveWorkItem();
+			}
+			
+			if(getValue("Decision")=="Approve" && ActivityName=='operations' && getValue('Dedupe_Match_found')=='Y')
+			{
+				var res = executeServerEvent("set_ntb","introducedone","",true);
+			}
+			
+			var status = insertIntoHistoryTable();
+			
+			if(ActivityName=='operations'  && (((!(getValue("CustomerInput_employerName_freeTxt")=="" || getValue("CustomerInput_employerName_freeTxt")==null)) &&(getValue("CustomerInput_employerName_freeTxt")==getValue("Company_employer_name")))||(!(getValue("CustomerInput_other_employerName")=="" || getValue("CustomerInput_other_employerName")==null))) && (getValue("Decision")=="Approve" || getValue("Decision")=="Refer to compliane WC" || getValue("Additional details needed")))
+			{
+				setControlValue("is_EmployerAdd_req","Y");
+			}
+			
+			if(ActivityName=='operations' || ActivityName=='compliance' || ActivityName=='compliance_wc' || ActivityName=='Additional_cust_details' || ActivityName=='sign_upload_checker' || ActivityName=='Ops_Account_Closure_Checker' || ActivityName=='Manual_Archive' )
+			{
+				var response = setNotifyFlag();	
+			}	
+			
+			if(ActivityName=='compliance')
+			{
+				var response = highrisk_flag_update();	
+			}
+					
+			saveWorkItem();
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+
+	}
+}
+
+function eventDispatched(controlObj,eventObj)
+{
+	var controlId=controlObj.id;
+	var controlEvent=eventObj.type;
+	var ControlIdandEvent = controlId+'_'+controlEvent;
+
+	switch(ControlIdandEvent)
+	{
+		case 'Introduce_click' : 
+			SetEventValues(controlId,controlEvent);
+			break;	
+		
+		case 'template_generate_click':
+			AttachDocumentWI(controlId);
+			break;
+		
+		case 'template_generate_kyc_click':
+			AttachDocumentWI(controlId);
+			break;
+		
+		case 'Generate_firco_temp_click':
+			AttachDocumentWI(controlId);
+			break;
+		case 'template_generate_dedupe_click':
+			AttachDocumentWI(controlId);
+			break;
+			
+		/* MODERN CRAM TRIGGER */
+		case 'Generate_RiskScore_click':
+			handleRiskTrigger(); 
+			break;
+
+		case 'AECB_rpt_click':
+			window.open(getValue("AECB_link"),"_self")
+			break;
+		
+		case 'sign_upload_click':
+			var result = executeServerEvent("sign_upload","Click","",true);
+			if(result=="success"){
+				signuploadFlag='true';
+				showMessage(controlId,"Sign upload successfully.","error")
+			}else
+			{
+				signuploadFlag='false';
+				showMessage(controlId,"Sign upload Failure!!","error")
+			}
+			break;
+			
+		case 'risk_score_change':
+			setControlValue("UpdProspectReqd","True");
+			if(getValue("User_Edit_name")==''){
+				setControlValue("User_Edit_name","none")
+			}
+			saveWorkItem();
+			break;
+			
+		case 'PEP_change':
+			setControlValue("UpdProspectReqd","True");
+			if(getValue("User_Edit_name")==''){
+				setControlValue("User_Edit_name","none")
+			}
+			setControlValue("risk_score","");
+			setControlValue("is_pep_modified","Y");			
+			saveWorkItem();
+			break;
+		
+		case 'Given_Name_change':
+			saveWorkItem();
+			break;
+			
+		case 'Middle_Name_change':
+			saveWorkItem();
+			break;
+			
+		case 'Surname_change':
+			saveWorkItem();
+			break;
+		
+		case 'gross_monthly_salary_income_change':
+			setMonthlyCash();
+			break;
+		
+		case 'Risk_score_trigger_click':
+			handleRiskTrigger(); // Reuse Orchestration logic for standard trigger
+			break;
+		
+		case 'CIF_Update_click':
+			var result = executeServerEvent("CIF_Update","Click","",true);
+			if(result=="success")
+			{
+				showMessage(controlId,"CIF update triggered successfully.","error")
+			}else
+			{
+				showMessage(controlId,"CIF update Integration Failure!!","error")
+			}
+			break;
+		
+		case 'Add_Country_click':
+			var country_code = getValue("Country_List");
+			var existing = getValue("countryDealingWith");
+			if(country_code=="") { alert("Empty value passed!"); break; }
+			if (existing !== "" && existing.split(',').includes(country_code)) { alert("You have already selected this country."); break; }
+			if (existing !== "" && existing.split(',').length >= 5) { alert("Maximum limit reached. You can select only up to 5 countries."); break; }
+			if(existing == "") { setControlValue("countryDealingWith", country_code); }
+			else { var next_val = existing + "," + country_code; setControlValue("countryDealingWith", next_val); }
+			if(getValue("countryDealingWith")=="") { alert("Countries with which business conducted can't be left blank"); break; }
+			var response = executeServerEvent("risk_score_change","change","",true);
+			return response;
+			break;
+
+		case 'Nationality_change':
+			var nation = getValue('Nationality');
+			var sec_nation = getValue('Secondary_Nationality');
+			if(nation==sec_nation) { showMessage(controlId,"Nationality can not be same as Secondary Nationality ","error"); break; }
+			var response = executeServerEvent("risk_score_change","change","",true);
+			return response;
+			break;
+			
+		case 'country_of_residence_change':
+			var response = executeServerEvent("risk_score_change","change","",true);
+			return response;
+			break;
+			
+		case 'Company_employer_name_change':
+			var response = executeServerEvent("risk_score_change","change","",true);
+			return response;
+			break;
+				
+		case 'industry_change':
+			var response = executeServerEvent("risk_score_change","change","",true);
+			return response;
+			break;
+		
+		case 'countryDealingWith_change':
+			var response = executeServerEvent("risk_score_change","change","",true);
+			return response;
+			break;
+		
+		case 'Business_activity_per_TL_change':
+			if(controlId=="Business_activity_per_TL"){
+				executeServerEvent("Business_activity_per_TL",controlEvent,getValue('Business_activity_per_TL'),false);
+			}
+			var response = executeServerEvent("risk_score_change","change","",true);
+			return response;
+			break;
+		
+		case 'companyName_change':
+			var response = executeServerEvent("risk_score_change","change","",true);
+			return response;
+			break;
+		
+		case 'table3_document_name_change':
+			var docName = getValue('table3_document_name');
+			var docStatus = 'Pending';
+			var flag='found';
+			var row_count = getGridRowCount("AddnalDocs");
+			for(var i =0; i<row_count;i++) {
+				var Doc_grid_status = getValueFromTableCell("AddnalDocs",i,1);
+				var Doc_grid_Name = getValueFromTableCell("AddnalDocs",i,0);
+				if(Doc_grid_Name==docName && Doc_grid_status==docStatus) {
+					showMessage("","Selected Document is already in the list, Please select another document!!","error");
+					setControlValue('table3_document_name','');
+					return false;
+				} else { flag='Not found'; }
+			}
+			if(flag=='Not found'){ return true; }
+			break;
+			
+		case 'table3_document_status_change':
+			if(ActivityName=='Additional_cust_details'){ setControlValue("Decision",''); }
+			break;
+		
+		case 'Decision_change':
+			if(getValue("Decision")=="Additional Details required from Customer" && ActivityName=='Additional_cust_details'){ validation_on_Decision_change(); break; }
+			if(getValue("Decision")=="Additional details needed" && (ActivityName=='sign_upload_checker' || ActivityName=='wm_control')){ validation_on_Decision_change(); break; }
+			if((getValue("Decision")=="send to compliance" || getValue("Decision")=="send to operations" || getValue("Decision")=="send to compliance WC" || getValue("Decision")=="Reject" || getValue("Decision")=="Initiate Account closure" || getValue("Decision")=="Additional Details required from Customer") && ActivityName=='Additional_cust_details' && getValue("prevws")=="sign_upload_checker"){ validation_on_Decision_change(); break; }
+			if((getValue("Decision")=="send to compliance" || getValue("Decision")=="send to operations" || getValue("Decision")=="send to compliance WC") && (ActivityName=='Additional_cust_details' || ActivityName=='wm_control')){ validation_on_Decision_change(); break; }
+			if((getValue("Decision")=="Approve" || getValue("Decision")=="Reject") && (ActivityName=='operations' || ActivityName=='compliance' || ActivityName=='compliance_wc')){ validation_on_Decision_change(); break; }
+			if((getValue("Decision")!="Approve") && ActivityName=='operations' && getValue("CIF_verification_flag")=='Y'){ validation_on_Decision_change(); break; }
+			if((getValue("Decision")!="Additional details needed" && getValue("Decision")!="Reject" && getValue("Decision")!="Approve") && ActivityName=='operations' && getValue("Name_modify")=='Y' && getValue("firco_hit")!='Y'){ validation_on_Decision_change(); break; }
+			if(getValue("Decision")=="Approve" && ActivityName=='operations' && (getValue("Given_Name")!=getValue("DEH_FirstName") || getValue("Middle_Name")!=getValue("DEH_middleName") || getValue("Surname")!=getValue("DEH_LastName"))){ validation_on_Decision_change(); break; }
+			if(getValue("Decision")=="Reject" && ActivityName=='Additional_cust_details' && getValue("is_stp")=='Y'){ validation_on_Decision_change(); break; }
+			break;
+
+		case 'is_modify_employer_change': var response = executeServerEvent("is_modify_employer_change","change","",true); return response; break;
+		case 'is_notPicklistEmployer_change': var response = executeServerEvent("is_notPicklistEmployer_change","change","",true); return response; break;
+		case 'picklist_employer_name_change': var response = executeServerEvent("picklist_employer_name_change","change","",true); return response; break;
+		case 'CustomerInput_other_employerName_change': setControlValue("Company_employer_name",getValue("CustomerInput_other_employerName")); break;
+		case 'internalExposureDetails_click': if(getValue("CIF")=="NTB"){ alert("Please select CIF Id for the Customer!"); break; } var response = executeServerEvent("InternalExposure","click","",false); CreateIndicator("temp"); return response; break;
+		case 'moneySent_Country1_change': case 'moneySent_Country2_change': case 'moneySent_Country3_change': case 'moneySent_Country4_change': case 'moneySent_Country5_change': executeServerEvent("Money_send_and_received_country_change","FormLoad","",true); break;
+	}
+}
+
+
+function postServerEventHandler(controlName,EventType,response)
+{
+	RemoveIndicator("temp");
+	if(controlName=="InternalExposure" && EventType=="click")
+	{	
+		if(response== "Inserted") { showMessage("InternalExposure","Internal Exposure Details Fetched Successful","error"); refreshFrame("Frame_ExposureDetails"); }
+		else { showMessage("InternalExposure","Internal Exposure Details Not Fetched","error"); }
+		try { window.parent.WFSave(); } catch(ex) {}
+	}	
+}
+
+function AttachDocumentWI(controlId)
+{
+	if(controlId == 'template_generate' || controlId =='template_generate_kyc')
+	{
+		controlId='template_generate';
+		var response = executeServerEvent(controlId,"click","DAO_Template_kyc",true);
+		var ajaxResult=response.split("~");
+		if(ajaxResult[0] == "0000")
+		{ 
+			window.parent.customAddDoc(ajaxResult[1],ajaxResult[2],ajaxResult[3]);	
+			showMessage(controlId,"Successful in attaching KYC template","error");
+			deleteTemplateFromServer(ajaxResult[4]);
+			saveWorkItem();
+		}
+		else { showMessage(controlId,"Error in attaching KYC template","error"); }
+	}
+	else if(controlId == 'Generate_firco_temp')
+	{
+		var response = executeServerEvent(controlId,"click","DAO_Firco_Template",true);
+		var ajaxResult=response.split("~");
+		if(ajaxResult[0] == "0000") { window.parent.customAddDoc(ajaxResult[1],ajaxResult[2],ajaxResult[3]); showMessage(controlId,"Successful in attaching Firco Template","error"); deleteTemplateFromServer(ajaxResult[4]); saveWorkItem(); }
+		else { showMessage(controlId,"Error in attaching Firco Template","error"); }
+	}
+	else if(controlId == 'template_generate_dedupe')
+	{
+		var response = executeServerEvent(controlId,"click","DAO_DEDUPE_Template",true);
+		var ajaxResult=response.split("~");
+		if(ajaxResult[0] == "0000") { window.parent.customAddDoc(ajaxResult[1],ajaxResult[2],ajaxResult[3]); showMessage(controlId,"Successful in attaching DEDUPE Template","error"); deleteTemplateFromServer(ajaxResult[4]); saveWorkItem(); }
+		else { showMessage(controlId,"Error in attaching DEDUPE Template","error"); }
+	} 
+	/* NOTE: Generate_RiskScore logic moved to handleRiskTrigger for orchestration */
+}
+
+function deleteTemplateFromServer (pdfname)
+{
+	var url = '/DAO/DAO/CustomJSP/DeleteGeneratedTemplate.jsp?pdfname='+pdfname;
+	var xhr = (window.XMLHttpRequest) ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+	xhr.open("GET",url,false); 
+	xhr.send(null);
+}
+
+function validateAccountSummaryBeforeProceed() {
+    var isNtb = getValue("is_Ntb");
+    var decision = getValue("Decision");
+    var accountType = getValue("product_type");
+    var dedupeMatch = getValue("Dedupe_Match_found");
+    if ((isNtb === 'N' && decision === "Approve" &&(ActivityName === 'operations' || ActivityName === 'compliance' || ActivityName === 'compliance_wc'))||(isNtb === 'Y' && dedupeMatch === 'Y' && decision === "Approve" &&(ActivityName === 'operations' || ActivityName === 'compliance' || ActivityName === 'compliance_wc'))) {
+        var response = executeServerEvent("AccountSummary", "click", "", true);
+        if (response === 'Inserted') {
+            refreshFrame("Frame_ExposureDetails", true);
+            var tableId = "table21";
+            var rowCount = getGridRowCount(tableId);
+            if (rowCount > 0) {
+                var allowedSchemes =getValue("ldaccounts");
+                let hasAllowedODA = false;
+                let hasNonAllowedODA = false;
+                for (let i = 0; i < rowCount; i++) {
+                    var acctType = getValueFromTableCell(tableId, i, 0);
+                    var crnCode = getValueFromTableCell(tableId, i, 2);
+                    var scheme = getValueFromTableCell(tableId, i, 1);
+                    if (accountType === "Savings Account" && acctType === "SBA") { showMessage("Decision", "Customer has a Savings Account. Kindly select the Reject Reason from dropdown & Reject the WI.", "error"); return false; }
+                    if (accountType === "Current Account" && (dedupeMatch === 'Y' || dedupeMatch === 'N') && acctType === "ODA" && crnCode === "AED") {
+                        if (allowedSchemes.includes(scheme)) { hasAllowedODA = true; } else { hasNonAllowedODA = true; }
+                    }
+                }
+                if (hasAllowedODA && hasNonAllowedODA) { showMessage("Decision", "Customer has a Current Account. Kindly select the Reject Reason from dropdown & Reject the WI.", "error"); return false; }
+                if (hasNonAllowedODA) { showMessage("Decision", "Customer has a Current Account. Kindly select the Reject Reason from dropdown & Reject the WI.", "error"); return false; }
+                return true;
+            }
+        }
+        return true;
+    }
+    return true;
+}
+
+/* ============================================================
+   NEW PRODUCTION LOGIC: CRAM ORCHESTRATION
+   ============================================================ */
+
+/**
+ * @function handleRiskTrigger
+ * @description Orchestrates AccountSummary refresh and CRAM Risk API.
+ */
+function handleRiskTrigger() {
+    if (!validateMandatoryRiskFields()) return;
+    var isNtb = getValue("is_Ntb");
+    var dedupeMatch = getValue("Dedupe_Match_found");
+    try { if (window.parent && window.parent.showProcessing) { window.parent.showProcessing(); } } catch(ex) {}
+
+    // Data Refresh Sequence for ETB/Dedupe
+    if (dedupeMatch === 'Y' || isNtb === 'N') {
+        executeServerEvent("AccountSummary", "Click", "", true); 
+    }
+
+    // Trigger Server Logic via DAOTemplate -> CramLogic
+    var response = executeServerEvent("Generate_RiskScore", "Click", "", true); 
+    try { if (window.parent && window.parent.hideProcessing) { window.parent.hideProcessing(); } } catch(ex) {}
+
+    if (!response || response === "" || response.indexOf("9999") > -1) {
+        showMessage("Generate_RiskScore", "Risk score Integration Failure!!", "error");
+        return;
+    }
+
+    var result = response.split("~");
+    if (result[0] === "0000") {
+        var score = result[2] || "0";
+        var category = result[3] || "N/A";
+        showMessage("Generate_RiskScore", "Risk Score Calculated: " + score + " (" + category + ")", "info");
+        saveWorkItem(); 
+    } else {
+        showMessage("Generate_RiskScore", "Risk score Integration Failure!!", "error");
+    }
+}
+
+/**
+ * @function validateMandatoryRiskFields
+ * @description Guard for Risk fields to prevent mapping errors in Java.
+ */
+function validateMandatoryRiskFields() {
+    var isNtb = getValue("is_Ntb");
+    var mandatory = [
+        { id: "pepValue", label: "PEP Value" },
+        { id: "industry_segment", label: "Industry" },
+        { id: "LengthofResidency", label: "Length of Residency" }
+    ];
+    if (isNtb === 'N') { mandatory.push({ id: "CIF", label: "CIF ID" }); }
+    for (var i = 0; i < mandatory.length; i++) {
+        if (getValue(mandatory[i].id) === "" || getValue(mandatory[i].id) == null) {
+            showMessage(mandatory[i].id, "Please populate " + mandatory[i].label + " to calculate risk.", "error");
+            return false;
+        }
+    }
+    return true;
+}
 
 
 
