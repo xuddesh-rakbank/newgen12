@@ -1,0 +1,24 @@
+-- Create table to store CRAM API configurations
+CREATE TABLE NG_DAO_CRAM_CONFIG (
+    Property_Name VARCHAR(100) NOT NULL PRIMARY KEY,
+    Property_Value VARCHAR(500) NOT NULL,
+    Description VARCHAR(255) NULL
+);
+GO
+
+
+-- Insert Configuration Values for CRAM Integration
+INSERT INTO NG_DAO_CRAM_CONFIG (Property_Name, Property_Value, Description)
+VALUES 
+('Kong_CRAM_Endpoint', 'https://apiinternal-uat.rakbanktst.ae/viya-cram-0/rrc', 'CRAM Decision Engine endpoint per Swagger'),
+('Kong_Token_Endpoint', 'https://apiinternal-uat.rakbanktst.ae/SASLogon/oauth/token', 'SAS OAuth2 token generation endpoint'),
+('Kong_API_KEY', 'ENTER_YOUR_KONG_API_KEY', 'x-api-key for Kong Gateway'),
+('Kong_API_JKS_Password', 'ENTER_YOUR_JKS_PASSWORD', 'Password for KongSSL.jks certificate'),
+('Kong_API_client_id', 'ENTER_YOUR_CLIENT_ID', 'SAS Viya Client ID'),
+('Kong_API_client_secret', 'ENTER_YOUR_CLIENT_SECRET', 'SAS Viya Client Secret');
+GO
+
+
+SELECT * FROM NG_DAO_CRAM_CONFIG;
+
+
