@@ -65,3 +65,105 @@ public String clickEvent(IFormReference iform, String controlName, String data) 
 
 
 
+/**
+ * @function handleRiskTrigger
+ * @description Orchestrates the sequence for CRAM without impacting existing UI behavior.
+ */
+function handleRiskTrigger() {
+    // 1. Existing Validation Pattern
+    if (!validateMandatoryRiskFields()) return;
+
+    var isNtb = getValue("is_Ntb");
+    var dedupeMatch = getValue("Dedupe_Match_found");
+
+    try { 
+        if (window.parent && window.parent.showProcessing) {
+            window.parent.showProcessing(); 
+        }
+    } catch(ex) {}
+
+    // 2. Scenario-based dependency refresh
+    if (dedupeMatch === 'Y' || isNtb === 'N') {
+        executeServerEvent("AccountSummary", "Click", "", true); 
+    }
+
+    // 3. Trigger modern CRAM Calculation (delegated via DAOTemplate)
+    var response = executeServerEvent("Generate_RiskScore", "Click", "", true); 
+
+    try { 
+        if (window.parent && window.parent.hideProcessing) {
+            window.parent.hideProcessing(); 
+        }
+    } catch(ex) {}
+
+    // 4. Handle Response using your existing Fail Message format
+    if (!response || response === "" || response.indexOf("FAIL") > -1) {
+        // Displays your existing standard failure message
+        showMessage("Generate_RiskScore", "Risk calculation failed. Please try again.", "error");
+        return;
+    }
+
+    var result = response.split("~");
+
+    if (result[0] === "0000") {
+        var score = result[2] || "0";
+        var category = result[3] || "N/A";
+        
+        showMessage("Generate_RiskScore", "Risk Score Calculated: " + score + " (" + category + ")", "info");
+        saveWorkItem(); // Persist changes immediately
+    } else {
+        // Capture specific logic errors from Java layer
+        var errorDesc = result[1] || "Process-Specific logic failure.";
+        showMessage("Generate_RiskScore", "Error: " + errorDesc, "error");
+    }
+}
+
+
+
+
+
+/**
+ * @function validateMandatoryRiskFields
+ * @description Guard for Risk fields to prevent API mapping errors.
+ */
+function validateMandatoryRiskFields() {
+    var isNtb = getValue("is_Ntb");
+    var mandatory = [
+        { id: "pepValue", label: "PEP Value" },
+        { id: "industry_segment", label: "Industry" },
+        { id: "LengthofResidency", label: "Length of Residency" }
+    ];
+    
+    if (isNtb === 'N') {
+        mandatory.push({ id: "CIF", label: "CIF ID" });
+    }
+
+    for (var i = 0; i < mandatory.length; i++) {
+        if (getValue(mandatory[i].id) === "" || getValue(mandatory[i].id) == null) {
+            // Using your existing display logic
+            showMessage(mandatory[i].id, "Please populate " + mandatory[i].label + " to calculate risk.", "error");
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
+
+
+if (op === "D") { // Done click
+    var riskScore = getValue("risk_score");
+    if (riskScore === "" || riskScore == null) {
+        // Existing message style for mandatory check on submission
+        showMessage("Generate_RiskScore", "Risk Score Calculation is mandatory before submission.", "error");
+        return false;
+    }
+}
+
+
+
+
+
+
+
