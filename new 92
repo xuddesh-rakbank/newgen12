@@ -22,3 +22,46 @@ GO
 SELECT * FROM NG_DAO_CRAM_CONFIG;
 
 
+// Inside DigitalAO_Click.java -> clickEvent method
+else if (controlName.equalsIgnoreCase("Generate_RiskScore")) 
+{
+    DigitalAO.mLogger.info("[Click-Event] Routing manual risk trigger to DAOTemplate.");
+    
+    // Business Rule: Standard KYC Date update
+    String currDate = new SimpleDateFormat("dd/MM/yyyy").format(new Date());
+    iform.setValue("KYC_review_Date", currDate);
+
+    // DELEGATED CALL: Triggers the logic inside the Template class
+    return new DAOTemplate().clickEvent(iform, "Generate_RiskScore", data);
+}
+
+
+
+
+
+// Inside DAOTemplate.java
+public String clickEvent(IFormReference iform, String controlName, String data) {
+    DigitalAO.mLogger.info("[DAOTemplate] Received request for: " + controlName);
+
+    if (controlName.equalsIgnoreCase("Generate_RiskScore")) {
+        DigitalAO.mLogger.debug("[DAOTemplate] Initializing Real-time CRAM Logic via Kong.");
+
+        // 1. Invoke the Process-Specific Logic Layer
+        // This handles DB configs, Token acquisition, and the JSON POST
+        DigitalAO_CramLogic logic = new DigitalAO_CramLogic();
+        String apiResult = logic.triggerRiskCalculation(iform);
+
+        DigitalAO.mLogger.info("[DAOTemplate] API Execution Result: " + apiResult);
+        
+        // Return the response back to the JS layer (split by ~)
+        return apiResult;
+    }
+    
+    // Maintain existing template generation for other controls
+    return ""; 
+}
+
+
+
+
+
