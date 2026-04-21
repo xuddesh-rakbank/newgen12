@@ -1,4 +1,44 @@
+// Reading a txt file from folder
+String fileLocation = new StringBuffer().append(System.getProperty("user.dir")).append(System.getProperty("file.separator")).append("DAO_Integration")
+    .append(System.getProperty("file.separator")).append("Notify_appliation.txt").toString(); [cite: 3, 125]
 
+BufferedReader sbf = new BufferedReader(new FileReader(fileLocation)); [cite: 3, 125]
+StringBuilder sb = new StringBuilder();
+String line = sbf.readLine();
+while(line != null) {
+    sb.append(line);
+    sb.append(System.lineSeparator());
+    line = sbf.readLine();
+} [cite: 4, 126]
+
+// Initial base replacement
+String Notify_app_input_xml = sb.toString().replace(">Workitem_Number<", ">" + CheckGridDataMap.get("Workitem_Number").trim() + "<")
+    .replace(">prospect_id<", ">" + CheckGridDataMap.get("prospect_id").trim() + "<")
+    .replace(">STATUS<", ">" + CheckGridDataMap.get("deh_Event") + "<")
+    .replace(">WorkItem_Status<", ">" + CheckGridDataMap.get("deh_Workitem_status") + "<"); [cite: 4, 127]
+
+// --- START: ADDED PART FOR SALARIED EMPLOYER TAGS ---
+String salariedEmployerTags = ""; [cite: 181]
+if ("Salaried".equalsIgnoreCase(emp_type)) { [cite: 1, 182]
+    salariedEmployerTags = 
+        "\t\t\t" + "<EmployerIndustry>" + CheckGridDataMap.get("industry_segment") + "</EmployerIndustry>" + "\n" +
+        "\t\t\t" + "<EmployerSubCategory>" + CheckGridDataMap.get("industry_subsegment") + "</EmployerSubCategory>" + "\n"; [cite: 1, 182]
+    DAONotifyAPPLog.DAONotifyAPPLogger.debug("salariedEmployerTags:: " + salariedEmployerTags); [cite: 2, 182]
+}
+
+// NOTE: Ensure your Notify_appliation.txt has a placeholder like #SalariedEmployerTags# 
+// or integrate it into the existing update_prospect logic as seen in the source.
+Notify_app_input_xml = Notify_app_input_xml.replace("#SalariedEmployerTags#", salariedEmployerTags); 
+// --- END: ADDED PART ---
+
+// PDOCAL-14 money sent and received
+String Money_send_and_received_Countries_final_IBPS = CheckGridDataMap.get("Money_send_and_received_Countries_final_IBPS"); [cite: 5, 128]
+
+if (!("".equalsIgnoreCase(Money_send_and_received_Countries_final_IBPS) || Money_send_and_received_Countries_final_IBPS.equalsIgnoreCase(null))) { [cite: 6, 129]
+    Notify_app_input_xml = Notify_app_input_xml.replace("#MoneySendAndReceivedCnts#", Money_send_and_received_Countries_final_IBPS); [cite: 6, 129]
+} else {
+    Notify_app_input_xml = Notify_app_input_xml.replace("<MoneySendAndReceivedCnts>#MoneySendAndReceivedCnts#</MoneySendAndReceivedCnts>", ""); [cite: 7, 130]
+} [cite: 8]
 
 
 	if ("Salaried".equalsIgnoreCase(emp_type)) {
