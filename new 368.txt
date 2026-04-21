@@ -17,14 +17,12 @@ else if (op=="I" || op=="D")
         return false;
     }
 
-    // New Validation for Industry and Subindustry on Approve
-    if (getValue("Decision") == "Approve") {
+  if(ActivityName == 'operations' && getValue("Decision") == 'Approve') {
         if (getValue("industry") == "" || getValue("industry") == null || getValue("industry_segment") == "" || getValue("industry_segment") == null) {
-            showMessage("industry", "Industry and Subindustry are mandatory for Approval.", "error");
+            showMessage("industry", "Industry and Subindustry are mandatory for Approval in Operations.", "error");
             setFocus("industry");
             return false;
         }
-    }
     
     // Existing logic for CIF and Dedupe follows...
     if(ActivityName=='operations' && getValue('Dedupe_Match_found')=='Y' && (getValue('CIF')=="" || 
